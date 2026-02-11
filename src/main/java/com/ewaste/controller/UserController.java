@@ -7,7 +7,6 @@ import com.ewaste.dto.OtpVerifyRequest;
 import com.ewaste.dto.RegisterRequest;
 import com.ewaste.service.UserService;
 
-import jakarta.validation.Valid;   // ✅ ADDED IMPORT
 
 import org.springframework.web.bind.annotation.*;
 import java.util.Map;
@@ -21,11 +20,9 @@ public class UserController {
     public UserController(UserService service) {
         this.service = service;
     }
-
-    // ✅ VALIDATION ENABLED HERE
     @PostMapping("/register")
     public Map<String, String> registerUser(
-            @Valid @RequestBody RegisterRequest request) {
+            @RequestBody RegisterRequest request) {
 
         String message = service.registerUser(request);
         return Map.of("message", message);
@@ -51,4 +48,21 @@ public class UserController {
     }
 
     @PostMapping("/login/verify-otp")
-    public AuthRespo
+    public AuthResponse verifyLoginOtp(@RequestBody OtpVerifyRequest request) {
+        String token = service.verifyLoginOtp(
+                request.getEmail(),
+                request.getOtp()
+        );
+        return new AuthResponse("Login successful", token);
+    }
+
+    @PostMapping("/login")
+    public AuthResponse loginWithPassword(@RequestBody LoginRequest request) {
+        String token = service.loginWithPassword(
+                request.getEmail(),
+                request.getPassword()
+        );
+        return new AuthResponse("Login successful", token);
+    }
+}
+
