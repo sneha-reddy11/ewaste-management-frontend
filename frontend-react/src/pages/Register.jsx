@@ -1,10 +1,13 @@
 ﻿import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { FaEye, FaEyeSlash } from "react-icons/fa";   // 👈 ADDED
 import AuthLayout from "../components/AuthLayout.jsx";
 import { apiRequest } from "../api.js";
 
 export default function Register() {
+
   const navigate = useNavigate();
+
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -12,31 +15,46 @@ export default function Register() {
     password: "",
     confirmPassword: ""
   });
+
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // 👁️ TOGGLE STATES
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   const onChange = (event) => {
-    setForm({ ...form, [event.target.name]: event.target.value });
+    setForm({
+      ...form,
+      [event.target.name]: event.target.value
+    });
   };
 
-  // PASSWORD VALIDATION
+  /* ================================
+     PASSWORD VALIDATION
+  ================================ */
   const validatePassword = (password) => {
     const regex =
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$/;
     return regex.test(password);
   };
 
-  // PHONE VALIDATION (ADDED)
+  /* ================================
+     PHONE VALIDATION
+  ================================ */
   const validatePhone = (phone) => {
-    const regex = /^[0-9]{10}$/; // exactly 10 digits
+    const regex = /^[0-9]{10}$/;
     return regex.test(phone);
   };
 
+  /* ================================
+     FORM SUBMIT
+  ================================ */
   const onSubmit = async (event) => {
+
     event.preventDefault();
     setError("");
 
-    // PHONE VALIDATION (ADDED)
     if (!validatePhone(form.phone)) {
       setError(
         "Phone number must contain exactly 10 digits."
@@ -44,7 +62,6 @@ export default function Register() {
       return;
     }
 
-    // PASSWORD CRITERIA VALIDATION
     if (!validatePassword(form.password)) {
       setError(
         "Password must contain:\n" +
@@ -63,10 +80,14 @@ export default function Register() {
     }
 
     setLoading(true);
+
     try {
+
       await apiRequest("/auth/register", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json"
+        },
         body: JSON.stringify({
           name: form.name,
           email: form.email,
@@ -74,8 +95,14 @@ export default function Register() {
           password: form.password
         })
       });
-      localStorage.setItem("pendingEmail", form.email);
+
+      localStorage.setItem(
+        "pendingEmail",
+        form.email
+      );
+
       navigate("/verify-otp");
+
     } catch (err) {
       setError(err.message);
     } finally {
@@ -83,21 +110,30 @@ export default function Register() {
     }
   };
 
+  /* ================================
+     UI
+  ================================ */
+
   return (
     <AuthLayout
       title="Create your account"
       subtitle="Start the e-waste pickup journey"
       footer={
         <span>
-          Already registered? <Link to="/login">Login</Link>
+          Already registered?
+          <Link to="/login"> Login</Link>
         </span>
       }
     >
-      <form onSubmit={onSubmit} className="form-grid">
+      <form
+        onSubmit={onSubmit}
+        className="form-grid"
+      >
+
+        {/* NAME */}
         <div className="input-group">
-          <label htmlFor="name">Full Name</label>
+          <label>Full Name</label>
           <input
-            id="name"
             name="name"
             type="text"
             value={form.name}
@@ -106,10 +142,10 @@ export default function Register() {
           />
         </div>
 
+        {/* EMAIL */}
         <div className="input-group">
-          <label htmlFor="email">Email</label>
+          <label>Email</label>
           <input
-            id="email"
             name="email"
             type="email"
             value={form.email}
@@ -118,56 +154,99 @@ export default function Register() {
           />
         </div>
 
+        {/* PHONE */}
         <div className="input-group">
-          <label htmlFor="phone">Phone</label>
+          <label>Phone</label>
           <input
-            id="phone"
             name="phone"
             type="tel"
             value={form.phone}
             onChange={onChange}
-            maxLength="10"   // ADDED
+            maxLength="10"
             required
           />
         </div>
 
+        {/* PASSWORD 👁️ */}
         <div className="input-group">
-          <label htmlFor="password">Password</label>
-          <input
-            id="password"
-            name="password"
-            type="password"
-            value={form.password}
-            onChange={onChange}
-            required
-          />
+          <label>Password</label>
+
+          <div className="password-wrapper">
+
+            <input
+              name="password"
+              type={showPassword ? "text" : "password"}
+              value={form.password}
+              onChange={onChange}
+              required
+            />
+
+            <button
+              type="button"
+              className="toggle-eye"
+              onClick={() =>
+                setShowPassword(!showPassword)
+              }
+            >
+              {showPassword ? <FaEyeSlash /> : <FaEye />}
+            </button>
+
+          </div>
         </div>
 
+        {/* CONFIRM PASSWORD 👁️ */}
         <div className="input-group">
-          <label htmlFor="confirmPassword">
-            Confirm Password
-          </label>
-          <input
-            id="confirmPassword"
-            name="confirmPassword"
-            type="password"
-            value={form.confirmPassword}
-            onChange={onChange}
-            required
-          />
+          <label>Confirm Password</label>
+
+          <div className="password-wrapper">
+
+            <input
+              name="confirmPassword"
+              type={
+                showConfirmPassword
+                  ? "text"
+                  : "password"
+              }
+              value={form.confirmPassword}
+              onChange={onChange}
+              required
+            />
+
+            <button
+              type="button"
+              className="toggle-eye"
+              onClick={() =>
+                setShowConfirmPassword(
+                  !showConfirmPassword
+                )
+              }
+            >
+              {showConfirmPassword
+                ? <FaEyeSlash />
+                : <FaEye />}
+            </button>
+
+          </div>
         </div>
 
-        {error ? (
-          <div className="form-error">{error}</div>
-        ) : null}
+        {/* ERROR */}
+        {error && (
+          <div className="form-error">
+            {error}
+          </div>
+        )}
 
+        {/* BUTTON */}
         <button
           type="submit"
           className="btn primary"
           disabled={loading}
         >
-          {loading ? "Sending OTP..." : "Register"}
+          {loading
+            ? "Sending OTP..."
+            : "Register"}
         </button>
+
       </form>
     </AuthLayout>
   );
