@@ -520,6 +520,23 @@ input:disabled {
   background: #f5faf7;
 }
 
+select,
+textarea {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  background: #ffffff;
+}
+
+select:focus,
+textarea:focus {
+  border-color: rgba(18, 183, 106, 0.75);
+  box-shadow: 0 0 0 3px rgba(18, 183, 106, 0.18);
+}
+
 .btn {
   border: none;
   border-radius: 999px;
