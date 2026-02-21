@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { Link } from "react-router-dom";
 
 export default function LandingPage() {
@@ -165,9 +165,10 @@ export default function LandingPage() {
 
       <footer className="landing-footer">
         <div className="landing-footer-inner">
-          <p className="landing-footer-copy">© 2026 EcoCircuit</p>
+          <p className="landing-footer-copy">(c) 2026 EcoCircuit</p>
         </div>
       </footer>
     </div>
   );
 }
+
