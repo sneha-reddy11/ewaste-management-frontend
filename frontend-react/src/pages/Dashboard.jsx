@@ -1,73 +1,101 @@
-﻿import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 export default function Dashboard() {
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    localStorage.removeItem("token");   // remove JWT
-    navigate("/");                      // go to landing page
+    localStorage.removeItem("token");
+    navigate("/");
   };
 
   return (
-    <div className="home-shell">
-
-      {/* 🔹 Top Navigation Bar */}
-      <header className="home-header">
-
-        {/* Brand */}
+    <div className="home-shell pin-dashboard-shell">
+      <header className="home-header pin-dashboard-header">
         <div className="brand">
           <div className="brand-mark">EW</div>
           <div>
             <div className="brand-name">E-Waste Management</div>
-            <div className="brand-tag">
-              Sustainable disposal made simple
-            </div>
+            <div className="brand-tag">Sustainable disposal made simple</div>
           </div>
         </div>
 
-        {/* Navigation Buttons */}
         <div className="home-header-actions">
-          <Link to="/requests/submit" className="btn primary">
+          <Link to="/requests/submit" className="btn pin-btn-primary">
             Submit Request
           </Link>
-          <Link to="/requests/view" className="btn ghost">
+          <Link to="/requests/view" className="btn pin-btn-ghost">
             View Requests
           </Link>
-
-          {/* ✅ Profile Link */}
-          <Link to="/profile/me" className="btn ghost">
+          <Link to="/profile/me" className="btn pin-btn-ghost">
             Profile
           </Link>
-
-          {/* ✅ Logout */}
-          <button className="btn ghost" onClick={handleLogout}>
+          <button className="btn pin-btn-ghost" onClick={handleLogout}>
             Logout
           </button>
-
         </div>
       </header>
 
-      {/* 🔹 Middle Content */}
-      <section className="home-hero-centered">
-        <div className="home-hero-content">
+      <section className="pin-hero-card">
 
-          <div className="home-pill">
-            🌱 Smart Recycling Dashboard
-          </div>
-
-          <h1 className="home-headline">
-            Welcome to Your <span className="home-highlight">Dashboard</span>
-          </h1>
-
-          <p className="home-subtitle">
-            This platform helps you dispose electronic waste responsibly.
-            Schedule pickups, monitor recycling progress, and contribute
-            towards a cleaner and greener environment.
-          </p>
-
+        <h1>
+          Plan pickups like a board. <span>Track with clarity.</span>
+        </h1>
+        <p>
+          A visual dashboard designed for fast actions: submit e-waste, monitor progress, and keep recycling simple.
+        </p>
+        <div className="pin-hero-actions">
+          <Link to="/requests/submit" className="btn pin-btn-primary">
+            Create Pickup
+          </Link>
+          <Link to="/requests/view" className="btn pin-btn-ghost">
+            Open Requests
+          </Link>
         </div>
       </section>
 
+      <section className="pin-board-grid">
+        <article className="pin-card pin-card-tall pin-card-olive">
+          <div className="pin-card-kicker">Doorstep Pickup</div>
+          <h3>Share details once, we handle the route.</h3>
+          <p>Add device info, pickup location, and preferred notes in a guided flow.</p>
+          <Link to="/requests/submit" className="pin-card-link">
+            Start submission
+          </Link>
+        </article>
+
+        <article className="pin-card pin-card-short pin-card-cream">
+          <div className="pin-card-kicker">Live Status</div>
+          <h3>Submitted to recycled.</h3>
+          <p>Follow every request stage with a clear timeline view.</p>
+          <Link to="/requests/view" className="pin-card-link">
+            View all requests
+          </Link>
+        </article>
+
+        <article className="pin-card pin-card-mid pin-card-rose">
+          <div className="pin-card-kicker">Profile Ready</div>
+          <h3>Keep contact details updated.</h3>
+          <p>Accurate profile data helps pickup teams reach you faster.</p>
+          <Link to="/profile/me" className="pin-card-link">
+            Update profile
+          </Link>
+        </article>
+
+        <article className="pin-card pin-card-mid pin-card-white">
+          <div className="pin-card-kicker">Quick Tips</div>
+          <ul className="pin-list">
+            <li>Upload a clear device image for faster review.</li>
+            <li>Use live location to avoid address mismatches.</li>
+            <li>Track status changes from your requests page.</li>
+          </ul>
+        </article>
+
+        <article className="pin-card pin-card-short pin-card-sky">
+          <div className="pin-card-kicker">Recycling Promise</div>
+          <h3>Responsible disposal only.</h3>
+          <p>Devices are handled through an eco-conscious process.</p>
+        </article>
+      </section>
     </div>
   );
 }
