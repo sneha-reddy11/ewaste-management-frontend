@@ -3,6 +3,7 @@ package com.ewaste.service;
 import com.ewaste.dto.EwasteRequestSummary;
 import com.ewaste.entity.EwasteRequest;
 import com.ewaste.entity.RequestCondition;
+import com.ewaste.entity.RequestStatus;
 import com.ewaste.entity.User;
 import com.ewaste.repository.EwasteRequestRepository;
 import com.ewaste.repository.UserRepository;
@@ -78,6 +79,49 @@ public class EwasteRequestService {
         return toSummary(request);
     }
 
+    public EwasteRequestSummary updateRequest(
+            String email,
+            Long requestId,
+            String deviceType,
+            String brand,
+            String model,
+            String condition,
+            Integer quantity,
+            String pickupAddress,
+            String additionalRemarks,
+            MultipartFile image
+    ) {
+        User user = getUserByEmail(email);
+        EwasteRequest request = requestRepository.findByIdAndUser(requestId, user)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Request not found"));
+
+        if (request.getStatus() != RequestStatus.SUBMITTED) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only submitted requests can be updated");
+        }
+
+        validateUpdateInput(deviceType, brand, model, condition, quantity, pickupAddress, image);
+
+        request.setDeviceType(deviceType.trim());
+        request.setBrand(brand.trim());
+        request.setModel(model.trim());
+        request.setCondition(parseCondition(condition));
+        request.setQuantity(quantity);
+        request.setPickupAddress(pickupAddress.trim());
+        request.setAdditionalRemarks(additionalRemarks == null ? null : additionalRemarks.trim());
+
+        if (image != null && !image.isEmpty()) {
+            try {
+                request.setImageData(image.getBytes());
+            } catch (IOException exception) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Could not read uploaded image");
+            }
+            request.setImageContentType(image.getContentType() == null ? "application/octet-stream" : image.getContentType());
+        }
+
+        EwasteRequest saved = requestRepository.save(request);
+        return toSummary(saved);
+    }
+
     public RequestImageData getRequestImageById(String email, Long requestId) {
         User user = getUserByEmail(email);
         EwasteRequest request = requestRepository.findByIdAndUser(requestId, user)
@@ -123,6 +167,33 @@ public class EwasteRequestService {
         }
         if (image == null || image.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Image upload is required");
+        }
+        if (image.getSize() > MAX_IMAGE_SIZE_BYTES) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Image size must be up to 5 MB");
+        }
+        String contentType = image.getContentType();
+        if (contentType == null || !contentType.startsWith("image/")) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only image files are allowed");
+        }
+    }
+
+    private void validateUpdateInput(
+            String deviceType,
+            String brand,
+            String model,
+            String condition,
+            Integer quantity,
+            String pickupAddress,
+            MultipartFile image
+    ) {
+        if (isBlank(deviceType) || isBlank(brand) || isBlank(model) || isBlank(condition) || isBlank(pickupAddress)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "All required fields must be provided");
+        }
+        if (quantity == null || quantity < 1 || quantity > 1000) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Quantity must be between 1 and 1000");
+        }
+        if (image == null || image.isEmpty()) {
+            return;
         }
         if (image.getSize() > MAX_IMAGE_SIZE_BYTES) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Image size must be up to 5 MB");
