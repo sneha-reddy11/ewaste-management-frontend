@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from "react-leaflet";
+import L from "leaflet";
+import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
+import markerIcon from "leaflet/dist/images/marker-icon.png";
+import markerShadow from "leaflet/dist/images/marker-shadow.png";
 import { apiRequest } from "../api.js";
 
 const CONDITIONS = ["WORKING", "DAMAGED", "DEAD"];
@@ -25,6 +30,37 @@ const FORM_STEPS = [
   { id: 2, title: "Pickup", hint: "Set where and how to collect it" },
   { id: 3, title: "Review", hint: "Confirm details and submit" }
 ];
+
+const MAP_PIN_ICON = L.icon({
+  iconRetinaUrl: markerIcon2x,
+  iconUrl: markerIcon,
+  shadowUrl: markerShadow,
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+});
+
+function MapCenterUpdater({ center }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!center) return;
+    map.setView([center.lat, center.lon]);
+  }, [center, map]);
+
+  return null;
+}
+
+function MapClickSetter({ onPick }) {
+  useMapEvents({
+    click(event) {
+      onPick(event.latlng.lat, event.latlng.lng);
+    }
+  });
+
+  return null;
+}
 
 export default function Requests({ mode = "all" }) {
   const navigate = useNavigate();
@@ -54,6 +90,13 @@ export default function Requests({ mode = "all" }) {
   const [locationLoading, setLocationLoading] = useState(false);
   const [locationError, setLocationError] = useState("");
   const [locationInfo, setLocationInfo] = useState("");
+  const [mapPickerOpen, setMapPickerOpen] = useState(false);
+  const [mapSearchQuery, setMapSearchQuery] = useState("");
+  const [mapSearchLoading, setMapSearchLoading] = useState(false);
+  const [mapSearchError, setMapSearchError] = useState("");
+  const [mapResults, setMapResults] = useState([]);
+  const [selectedMapResult, setSelectedMapResult] = useState(null);
+  const [mapPinLoading, setMapPinLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [stepError, setStepError] = useState("");
   const [editingRequest, setEditingRequest] = useState(null);
@@ -70,12 +113,50 @@ export default function Requests({ mode = "all" }) {
   const [updateImageFile, setUpdateImageFile] = useState(null);
   const [updateLoading, setUpdateLoading] = useState(false);
   const [updateError, setUpdateError] = useState("");
+  const [requestImages, setRequestImages] = useState({});
 
   useEffect(() => {
     if (!isSubmitOnly) {
       fetchMyRequests();
     }
   }, [isSubmitOnly]);
+
+  useEffect(() => {
+    if (requests.length === 0) return;
+    let isActive = true;
+    const token = localStorage.getItem("token");
+
+    const fetchImages = async () => {
+      const updates = {};
+      await Promise.all(
+        requests.map(async (request) => {
+          if (!request?.id || requestImages[request.id]) return;
+          try {
+            const imagePayload = await apiRequest(`/requests/${request.id}/image-data`, {
+              headers: {
+                Authorization: `Bearer ${token}`
+              }
+            });
+            if (imagePayload?.base64Data) {
+              const contentType = imagePayload.contentType || "image/jpeg";
+              updates[request.id] = `data:${contentType};base64,${imagePayload.base64Data}`;
+            }
+          } catch {
+            // Ignore image failures and keep fallback initials.
+          }
+        })
+      );
+
+      if (isActive && Object.keys(updates).length > 0) {
+        setRequestImages((prev) => ({ ...prev, ...updates }));
+      }
+    };
+
+    fetchImages();
+    return () => {
+      isActive = false;
+    };
+  }, [requests, requestImages]);
 
   const fetchMyRequests = async () => {
     const token = localStorage.getItem("token");
@@ -349,6 +430,111 @@ export default function Requests({ mode = "all" }) {
     }
   };
 
+  const handleOpenMapPicker = () => {
+    setMapPickerOpen(true);
+    setMapSearchError("");
+    setMapSearchLoading(false);
+    setMapSearchQuery((prev) => prev || form.pickupAddress || "");
+    setMapResults([]);
+    setSelectedMapResult(null);
+  };
+
+  const handleCloseMapPicker = () => {
+    setMapPickerOpen(false);
+    setMapSearchError("");
+    setMapSearchLoading(false);
+    setMapResults([]);
+    setSelectedMapResult(null);
+  };
+
+  const handleSearchMapLocations = async (event) => {
+    event.preventDefault();
+    const query = mapSearchQuery.trim();
+    if (!query) {
+      setMapSearchError("Enter an area, landmark, or full address to search.");
+      setMapResults([]);
+      setSelectedMapResult(null);
+      return;
+    }
+
+    setMapSearchError("");
+    setMapSearchLoading(true);
+    setMapResults([]);
+    setSelectedMapResult(null);
+
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(query)}&addressdetails=1&limit=8`,
+        {
+          headers: {
+            Accept: "application/json"
+          }
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Search failed");
+      }
+
+      const data = await response.json();
+      if (!Array.isArray(data) || data.length === 0) {
+        setMapSearchError("No matching places found. Try a broader search.");
+        return;
+      }
+
+      const normalizedResults = data.map((result, index) => ({
+        id: `${result.place_id || "place"}-${index}`,
+        displayName: result.display_name,
+        lat: Number(result.lat),
+        lon: Number(result.lon)
+      }));
+
+      setMapResults(normalizedResults);
+      setSelectedMapResult(normalizedResults[0]);
+    } catch {
+      setMapSearchError("Could not search map locations right now. Please try again.");
+    } finally {
+      setMapSearchLoading(false);
+    }
+  };
+
+  const setMapPointAndResolveAddress = async (latitude, longitude) => {
+    const fallbackDisplay = `Latitude: ${latitude.toFixed(6)}, Longitude: ${longitude.toFixed(6)}`;
+
+    setMapPinLoading(true);
+    try {
+      const address = await fetchReadableAddress(latitude, longitude);
+      setSelectedMapResult((prev) => ({
+        id: prev?.id || `picked-${Date.now()}`,
+        lat: latitude,
+        lon: longitude,
+        displayName: address
+      }));
+    } catch {
+      setSelectedMapResult((prev) => ({
+        id: prev?.id || `picked-${Date.now()}`,
+        lat: latitude,
+        lon: longitude,
+        displayName: fallbackDisplay
+      }));
+    } finally {
+      setMapPinLoading(false);
+    }
+  };
+
+  const handleUseMapLocation = () => {
+    if (!selectedMapResult) return;
+
+    setForm((prev) => ({
+      ...prev,
+      pickupAddress: selectedMapResult.displayName
+    }));
+    setStepError("");
+    setLocationError("");
+    setLocationInfo("Pickup address was set from map selection.");
+    handleCloseMapPicker();
+  };
+
   const validateStepData = (stepId) => {
     if (stepId === 1) {
       if (!form.deviceType?.trim()) return "Please select a device type.";
@@ -565,6 +751,9 @@ export default function Requests({ mode = "all" }) {
                       <button className="btn ghost btn-location" type="button" onClick={handleFetchLiveLocation} disabled={locationLoading}>
                         {locationLoading ? "Fetching location..." : "Use Current Location"}
                       </button>
+                      <button className="btn ghost btn-location" type="button" onClick={handleOpenMapPicker} disabled={locationLoading}>
+                        Pick from Map
+                      </button>
                     </div>
                     <textarea
                       name="pickupAddress"
@@ -654,7 +843,6 @@ export default function Requests({ mode = "all" }) {
           {!listLoading && requests.length > 0 && (
             <div className="request-list-toolbar">
               <div className="request-filter-header">
-                <div className="request-filter-title">Filter requests</div>
                 <div className="request-filter-summary">
                   Showing {filteredRequests.length} of {requests.length}
                 </div>
@@ -712,7 +900,13 @@ export default function Requests({ mode = "all" }) {
               {filteredRequests.map((request) => (
                 <article className="fk-list-item" key={request.id}>
                   <div className="fk-list-product">
-                    <div className="fk-list-thumb">{(request.deviceType || "EW").slice(0, 2).toUpperCase()}</div>
+                    <div className="fk-list-thumb">
+                      {requestImages[request.id] ? (
+                        <img className="fk-thumb-image" src={requestImages[request.id]} alt="E-waste request" />
+                      ) : (
+                        (request.deviceType || "EW").slice(0, 2).toUpperCase()
+                      )}
+                    </div>
                     <div className="fk-list-meta">
                       <div className="fk-list-title">
                         {request.brand} {request.model}
@@ -904,6 +1098,86 @@ export default function Requests({ mode = "all" }) {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {mapPickerOpen && (
+        <div className="popup-overlay">
+          <div className="popup-box map-picker-popup-box">
+            <h2>Select Pickup Location</h2>
+            <p>Search in the map, choose a location, then use it for pickup address.</p>
+
+            <form className="map-picker-search" onSubmit={handleSearchMapLocations}>
+              <input
+                value={mapSearchQuery}
+                onChange={(event) => setMapSearchQuery(event.target.value)}
+                placeholder="Search by area, landmark, or address"
+              />
+              <button className="btn primary" type="submit" disabled={mapSearchLoading}>
+                {mapSearchLoading ? "Searching..." : "Search"}
+              </button>
+            </form>
+
+            {mapSearchError && <div className="field-error">{mapSearchError}</div>}
+
+            {selectedMapResult && (
+              <div className="map-preview-wrap">
+                <MapContainer
+                  center={[selectedMapResult.lat, selectedMapResult.lon]}
+                  zoom={16}
+                  className="map-preview-frame"
+                  scrollWheelZoom
+                >
+                  <MapCenterUpdater center={selectedMapResult} />
+                  <MapClickSetter onPick={setMapPointAndResolveAddress} />
+                  <TileLayer
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  />
+                  <Marker
+                    position={[selectedMapResult.lat, selectedMapResult.lon]}
+                    icon={MAP_PIN_ICON}
+                    draggable
+                    eventHandlers={{
+                      dragend: (event) => {
+                        const { lat, lng } = event.target.getLatLng();
+                        setMapPointAndResolveAddress(lat, lng);
+                      }
+                    }}
+                  />
+                </MapContainer>
+                <div className="map-pin-meta">
+                  {mapPinLoading
+                    ? "Updating address from moved pin..."
+                    : `Drag marker or click map. Lat ${selectedMapResult.lat.toFixed(6)} | Lon ${selectedMapResult.lon.toFixed(6)}`}
+                </div>
+              </div>
+            )}
+
+            {mapResults.length > 0 && (
+              <div className="map-results-list">
+                {mapResults.map((result) => (
+                  <button
+                    key={result.id}
+                    type="button"
+                    className={`map-result-item ${selectedMapResult?.id === result.id ? "is-selected" : ""}`}
+                    onClick={() => setSelectedMapResult(result)}
+                  >
+                    {result.displayName}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <div className="profile-actions map-picker-actions">
+              <button className="btn ghost" type="button" onClick={handleCloseMapPicker}>
+                Cancel
+              </button>
+              <button className="btn primary" type="button" onClick={handleUseMapLocation} disabled={!selectedMapResult}>
+                Use Selected Location
+              </button>
+            </div>
           </div>
         </div>
       )}
