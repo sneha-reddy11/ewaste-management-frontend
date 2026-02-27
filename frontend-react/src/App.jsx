@@ -1,4 +1,6 @@
 ﻿import { Routes, Route, Navigate } from "react-router-dom";
+import { useTheme } from "./hooks/useTheme";
+import ThemeToggle from "./components/ThemeToggle";
 import LandingPage from "./pages/LandingPage";
 import Home from "./pages/Home.jsx";
 import Login from "./pages/Login.jsx";
@@ -13,8 +15,14 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 
 export default function App() {
+  const { mounted } = useTheme();
+
+  if (!mounted) return null;
+
   return (
-    <Routes>
+    <>
+      <ThemeToggle />
+      <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
@@ -72,6 +80,8 @@ export default function App() {
         }
       />
       <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+      </Routes>
+    </>
   );
 }
+

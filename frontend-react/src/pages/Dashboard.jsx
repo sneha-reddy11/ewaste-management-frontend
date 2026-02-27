@@ -38,10 +38,10 @@ export default function Dashboard() {
       <section className="pin-hero-card">
 
         <h1>
-          Plan pickups like a board. <span>Track with clarity.</span>
+          Responsible Disposal, <span>Lasting Legacy</span>
         </h1>
         <p>
-          A visual dashboard designed for fast actions: submit e-waste, monitor progress, and keep recycling simple.
+          Transform your environmental impact. Seamlessly submit electronics for responsible recycling, track every step of the journey, and join thousands making sustainable choices. Your waste management, powered by transparency and accountability.
         </p>
         <div className="pin-hero-actions">
           <Link to="/requests/submit" className="btn pin-btn-primary">
