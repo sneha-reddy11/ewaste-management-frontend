@@ -63,6 +63,33 @@ public class EwasteRequestController {
         return requestService.getRequestById(authentication.getName(), id);
     }
 
+    @PostMapping("/{id}/update")
+    public EwasteRequestSummary updateRequest(
+            Authentication authentication,
+            @PathVariable Long id,
+            @RequestParam String deviceType,
+            @RequestParam String brand,
+            @RequestParam String model,
+            @RequestParam String condition,
+            @RequestParam Integer quantity,
+            @RequestParam String pickupAddress,
+            @RequestParam(required = false) String additionalRemarks,
+            @RequestPart(value = "image", required = false) MultipartFile image
+    ) {
+        return requestService.updateRequest(
+                authentication.getName(),
+                id,
+                deviceType,
+                brand,
+                model,
+                condition,
+                quantity,
+                pickupAddress,
+                additionalRemarks,
+                image
+        );
+    }
+
     @GetMapping("/{id}/image")
     public ResponseEntity<byte[]> requestImage(Authentication authentication, @PathVariable Long id) {
         EwasteRequestService.RequestImageData imageData = requestService.getRequestImageById(authentication.getName(), id);

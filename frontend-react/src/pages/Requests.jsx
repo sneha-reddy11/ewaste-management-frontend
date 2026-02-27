@@ -1,5 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from "react-leaflet";
+import L from "leaflet";
+import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
+import markerIcon from "leaflet/dist/images/marker-icon.png";
+import markerShadow from "leaflet/dist/images/marker-shadow.png";
 import { apiRequest } from "../api.js";
 
 const CONDITIONS = ["WORKING", "DAMAGED", "DEAD"];
@@ -26,6 +31,37 @@ const FORM_STEPS = [
   { id: 3, title: "Review", hint: "Confirm details and submit" }
 ];
 
+const MAP_PIN_ICON = L.icon({
+  iconRetinaUrl: markerIcon2x,
+  iconUrl: markerIcon,
+  shadowUrl: markerShadow,
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+});
+
+function MapCenterUpdater({ center }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!center) return;
+    map.setView([center.lat, center.lon]);
+  }, [center, map]);
+
+  return null;
+}
+
+function MapClickSetter({ onPick }) {
+  useMapEvents({
+    click(event) {
+      onPick(event.latlng.lat, event.latlng.lng);
+    }
+  });
+
+  return null;
+}
+
 export default function Requests({ mode = "all" }) {
   const navigate = useNavigate();
   const isSubmitOnly = mode === "submit";
@@ -49,17 +85,78 @@ export default function Requests({ mode = "all" }) {
   const [listLoading, setListLoading] = useState(true);
   const [deletingId, setDeletingId] = useState(null);
   const [pendingDeleteId, setPendingDeleteId] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
   const [locationLoading, setLocationLoading] = useState(false);
   const [locationError, setLocationError] = useState("");
   const [locationInfo, setLocationInfo] = useState("");
+  const [mapPickerOpen, setMapPickerOpen] = useState(false);
+  const [mapSearchQuery, setMapSearchQuery] = useState("");
+  const [mapSearchLoading, setMapSearchLoading] = useState(false);
+  const [mapSearchError, setMapSearchError] = useState("");
+  const [mapResults, setMapResults] = useState([]);
+  const [selectedMapResult, setSelectedMapResult] = useState(null);
+  const [mapPinLoading, setMapPinLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [stepError, setStepError] = useState("");
+  const [editingRequest, setEditingRequest] = useState(null);
+  const [updateForm, setUpdateForm] = useState({
+    deviceType: "Laptop",
+    customDeviceType: "",
+    brand: "",
+    model: "",
+    condition: "WORKING",
+    quantity: 1,
+    pickupAddress: "",
+    additionalRemarks: ""
+  });
+  const [updateImageFile, setUpdateImageFile] = useState(null);
+  const [updateLoading, setUpdateLoading] = useState(false);
+  const [updateError, setUpdateError] = useState("");
+  const [requestImages, setRequestImages] = useState({});
 
   useEffect(() => {
     if (!isSubmitOnly) {
       fetchMyRequests();
     }
   }, [isSubmitOnly]);
+
+  useEffect(() => {
+    if (requests.length === 0) return;
+    let isActive = true;
+    const token = localStorage.getItem("token");
+
+    const fetchImages = async () => {
+      const updates = {};
+      await Promise.all(
+        requests.map(async (request) => {
+          if (!request?.id || requestImages[request.id]) return;
+          try {
+            const imagePayload = await apiRequest(`/requests/${request.id}/image-data`, {
+              headers: {
+                Authorization: `Bearer ${token}`
+              }
+            });
+            if (imagePayload?.base64Data) {
+              const contentType = imagePayload.contentType || "image/jpeg";
+              updates[request.id] = `data:${contentType};base64,${imagePayload.base64Data}`;
+            }
+          } catch {
+            // Ignore image failures and keep fallback initials.
+          }
+        })
+      );
+
+      if (isActive && Object.keys(updates).length > 0) {
+        setRequestImages((prev) => ({ ...prev, ...updates }));
+      }
+    };
+
+    fetchImages();
+    return () => {
+      isActive = false;
+    };
+  }, [requests, requestImages]);
 
   const fetchMyRequests = async () => {
     const token = localStorage.getItem("token");
@@ -98,6 +195,129 @@ export default function Requests({ mode = "all" }) {
 
   const readableStatus = (status) => STATUS_LABELS[status] || STATUS_LABELS.OTHER;
   const readableStatusDetail = (status) => STATUS_DETAILS[status] || STATUS_DETAILS.OTHER;
+
+  const openUpdateModal = (request) => {
+    setUpdateError("");
+    setUpdateImageFile(null);
+    const knownDeviceType = DEVICE_TYPES.includes(request.deviceType) ? request.deviceType : "Other";
+    setUpdateForm({
+      deviceType: knownDeviceType,
+      customDeviceType: knownDeviceType === "Other" ? request.deviceType || "" : "",
+      brand: request.brand || "",
+      model: request.model || "",
+      condition: request.condition || "WORKING",
+      quantity: request.quantity || 1,
+      pickupAddress: request.pickupAddress || "",
+      additionalRemarks: request.additionalRemarks || ""
+    });
+    setEditingRequest(request);
+  };
+
+  const closeUpdateModal = () => {
+    setEditingRequest(null);
+    setUpdateError("");
+    setUpdateImageFile(null);
+  };
+
+  const handleUpdateChange = (event) => {
+    const { name, value } = event.target;
+    if (name === "quantity") {
+      setUpdateForm((prev) => ({
+        ...prev,
+        quantity: Number(value)
+      }));
+      return;
+    }
+    setUpdateForm((prev) => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const validateUpdateForm = () => {
+    if (!updateForm.deviceType?.trim()) return "Please select a device type.";
+    if (updateForm.deviceType === "Other" && !updateForm.customDeviceType?.trim()) return "Please specify the device type.";
+    if (!updateForm.brand?.trim()) return "Please enter device brand.";
+    if (!updateForm.model?.trim()) return "Please enter device model.";
+    if (!updateForm.condition?.trim()) return "Please select device condition.";
+    if (!Number.isFinite(updateForm.quantity) || updateForm.quantity < 1) return "Quantity should be at least 1.";
+    if (!updateForm.pickupAddress?.trim()) return "Please provide pickup address.";
+    return "";
+  };
+
+  const handleUpdateSubmit = async (event) => {
+    event.preventDefault();
+    if (!editingRequest) return;
+
+    const validationMessage = validateUpdateForm();
+    if (validationMessage) {
+      setUpdateError(validationMessage);
+      return;
+    }
+
+    setUpdateError("");
+    setUpdateLoading(true);
+    const token = localStorage.getItem("token");
+    const payload = new FormData();
+    const finalDeviceType =
+      updateForm.deviceType === "Other"
+        ? updateForm.customDeviceType.trim()
+        : updateForm.deviceType.trim();
+
+    payload.append("deviceType", finalDeviceType);
+    payload.append("brand", updateForm.brand.trim());
+    payload.append("model", updateForm.model.trim());
+    payload.append("condition", updateForm.condition);
+    payload.append("quantity", String(updateForm.quantity));
+    payload.append("pickupAddress", updateForm.pickupAddress.trim());
+    if (updateForm.additionalRemarks.trim()) {
+      payload.append("additionalRemarks", updateForm.additionalRemarks.trim());
+    }
+    if (updateImageFile) {
+      payload.append("image", updateImageFile);
+    }
+
+    try {
+      const updated = await apiRequest(`/requests/${editingRequest.id}/update`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`
+        },
+        body: payload
+      });
+      setRequests((prev) => prev.map((request) => (request.id === updated.id ? updated : request)));
+      closeUpdateModal();
+    } catch (err) {
+      setUpdateError(err.message);
+    } finally {
+      setUpdateLoading(false);
+    }
+  };
+
+  const filteredRequests = useMemo(() => {
+    const normalizedQuery = searchQuery.trim().toLowerCase();
+    return requests.filter((request) => {
+      if (statusFilter !== "ALL" && request.status !== statusFilter) {
+        return false;
+      }
+      if (!normalizedQuery) {
+        return true;
+      }
+      const searchable = [
+        request.id,
+        request.brand,
+        request.model,
+        request.deviceType,
+        request.condition,
+        STATUS_LABELS[request.status],
+        request.status
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return searchable.includes(normalizedQuery);
+    });
+  }, [requests, searchQuery, statusFilter]);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -208,6 +428,111 @@ export default function Requests({ mode = "all" }) {
     } finally {
       setLocationLoading(false);
     }
+  };
+
+  const handleOpenMapPicker = () => {
+    setMapPickerOpen(true);
+    setMapSearchError("");
+    setMapSearchLoading(false);
+    setMapSearchQuery((prev) => prev || form.pickupAddress || "");
+    setMapResults([]);
+    setSelectedMapResult(null);
+  };
+
+  const handleCloseMapPicker = () => {
+    setMapPickerOpen(false);
+    setMapSearchError("");
+    setMapSearchLoading(false);
+    setMapResults([]);
+    setSelectedMapResult(null);
+  };
+
+  const handleSearchMapLocations = async (event) => {
+    event.preventDefault();
+    const query = mapSearchQuery.trim();
+    if (!query) {
+      setMapSearchError("Enter an area, landmark, or full address to search.");
+      setMapResults([]);
+      setSelectedMapResult(null);
+      return;
+    }
+
+    setMapSearchError("");
+    setMapSearchLoading(true);
+    setMapResults([]);
+    setSelectedMapResult(null);
+
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(query)}&addressdetails=1&limit=8`,
+        {
+          headers: {
+            Accept: "application/json"
+          }
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Search failed");
+      }
+
+      const data = await response.json();
+      if (!Array.isArray(data) || data.length === 0) {
+        setMapSearchError("No matching places found. Try a broader search.");
+        return;
+      }
+
+      const normalizedResults = data.map((result, index) => ({
+        id: `${result.place_id || "place"}-${index}`,
+        displayName: result.display_name,
+        lat: Number(result.lat),
+        lon: Number(result.lon)
+      }));
+
+      setMapResults(normalizedResults);
+      setSelectedMapResult(normalizedResults[0]);
+    } catch {
+      setMapSearchError("Could not search map locations right now. Please try again.");
+    } finally {
+      setMapSearchLoading(false);
+    }
+  };
+
+  const setMapPointAndResolveAddress = async (latitude, longitude) => {
+    const fallbackDisplay = `Latitude: ${latitude.toFixed(6)}, Longitude: ${longitude.toFixed(6)}`;
+
+    setMapPinLoading(true);
+    try {
+      const address = await fetchReadableAddress(latitude, longitude);
+      setSelectedMapResult((prev) => ({
+        id: prev?.id || `picked-${Date.now()}`,
+        lat: latitude,
+        lon: longitude,
+        displayName: address
+      }));
+    } catch {
+      setSelectedMapResult((prev) => ({
+        id: prev?.id || `picked-${Date.now()}`,
+        lat: latitude,
+        lon: longitude,
+        displayName: fallbackDisplay
+      }));
+    } finally {
+      setMapPinLoading(false);
+    }
+  };
+
+  const handleUseMapLocation = () => {
+    if (!selectedMapResult) return;
+
+    setForm((prev) => ({
+      ...prev,
+      pickupAddress: selectedMapResult.displayName
+    }));
+    setStepError("");
+    setLocationError("");
+    setLocationInfo("Pickup address was set from map selection.");
+    handleCloseMapPicker();
   };
 
   const validateStepData = (stepId) => {
@@ -426,6 +751,9 @@ export default function Requests({ mode = "all" }) {
                       <button className="btn ghost btn-location" type="button" onClick={handleFetchLiveLocation} disabled={locationLoading}>
                         {locationLoading ? "Fetching location..." : "Use Current Location"}
                       </button>
+                      <button className="btn ghost btn-location" type="button" onClick={handleOpenMapPicker} disabled={locationLoading}>
+                        Pick from Map
+                      </button>
                     </div>
                     <textarea
                       name="pickupAddress"
@@ -512,16 +840,73 @@ export default function Requests({ mode = "all" }) {
           <div className="page-title">My Requests</div>
           {error && <div className="form-error">{error}</div>}
 
+          {!listLoading && requests.length > 0 && (
+            <div className="request-list-toolbar">
+              <div className="request-filter-header">
+                <div className="request-filter-summary">
+                  Showing {filteredRequests.length} of {requests.length}
+                </div>
+              </div>
+              <div className="request-filters">
+                <div className="input-group">
+                  <label>Search</label>
+                  <input
+                    className="request-search-input"
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                    placeholder="Search by ID, brand, model, or device type"
+                  />
+                </div>
+                <div className="input-group">
+                  <label>Status</label>
+                  <select
+                    className="request-status-select"
+                    value={statusFilter}
+                    onChange={(event) => setStatusFilter(event.target.value)}
+                  >
+                    <option value="ALL">All Statuses</option>
+                    {Object.keys(STATUS_LABELS).map((status) => (
+                      <option key={status} value={status}>
+                        {STATUS_LABELS[status]}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="request-filter-actions">
+                  <button
+                    className="btn ghost btn-clear"
+                    type="button"
+                    onClick={() => {
+                      setSearchQuery("");
+                      setStatusFilter("ALL");
+                    }}
+                    disabled={!searchQuery && statusFilter === "ALL"}
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {listLoading ? (
             <div className="loading">Loading requests...</div>
           ) : requests.length === 0 ? (
             <div className="loading">No requests submitted yet.</div>
+          ) : filteredRequests.length === 0 ? (
+            <div className="loading">No requests match your filters.</div>
           ) : (
             <div className="fk-list-shell">
-              {requests.map((request) => (
+              {filteredRequests.map((request) => (
                 <article className="fk-list-item" key={request.id}>
                   <div className="fk-list-product">
-                    <div className="fk-list-thumb">{(request.deviceType || "EW").slice(0, 2).toUpperCase()}</div>
+                    <div className="fk-list-thumb">
+                      {requestImages[request.id] ? (
+                        <img className="fk-thumb-image" src={requestImages[request.id]} alt="E-waste request" />
+                      ) : (
+                        (request.deviceType || "EW").slice(0, 2).toUpperCase()
+                      )}
+                    </div>
                     <div className="fk-list-meta">
                       <div className="fk-list-title">
                         {request.brand} {request.model}
@@ -529,7 +914,6 @@ export default function Requests({ mode = "all" }) {
                       <div className="fk-list-subtitle">
                         {request.deviceType} - {request.condition} - Qty {request.quantity}
                       </div>
-                      <div className="fk-list-id">Request ID: #{request.id}</div>
                     </div>
                   </div>
 
@@ -549,6 +933,11 @@ export default function Requests({ mode = "all" }) {
                     <span className={statusClassName(request.status)}>{readableStatus(request.status)}</span>
                     <div className="fk-list-status-copy">{readableStatusDetail(request.status)}</div>
                     <div className="fk-list-actions">
+                      {request.status === "SUBMITTED" && (
+                        <button className="btn ghost btn-track" type="button" onClick={() => openUpdateModal(request)}>
+                          Update
+                        </button>
+                      )}
                       <button className="btn ghost btn-track" type="button" onClick={() => navigate(`/requests/track/${request.id}`)}>
                         Track
                       </button>
@@ -599,6 +988,194 @@ export default function Requests({ mode = "all" }) {
                 }}
               >
                 Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {editingRequest && (
+        <div className="popup-overlay">
+          <div className="popup-box update-popup-box">
+            <h2>Update Request</h2>
+            <p>Only submitted requests can be updated.</p>
+            {updateError && <div className="form-error">{updateError}</div>}
+            <form className="update-form" onSubmit={handleUpdateSubmit}>
+              <div className="update-form-grid">
+                <div className="input-group">
+                  <label>Device Type</label>
+                  <select name="deviceType" value={updateForm.deviceType} onChange={handleUpdateChange}>
+                    {DEVICE_TYPES.map((deviceType) => (
+                      <option key={deviceType} value={deviceType}>
+                        {deviceType}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {updateForm.deviceType === "Other" && (
+                  <div className="input-group">
+                    <label>Specify Device Type</label>
+                    <input
+                      name="customDeviceType"
+                      value={updateForm.customDeviceType}
+                      onChange={handleUpdateChange}
+                      placeholder="Enter device type"
+                    />
+                  </div>
+                )}
+
+                <div className="input-group">
+                  <label>Brand</label>
+                  <input name="brand" value={updateForm.brand} onChange={handleUpdateChange} placeholder="HP, Dell, Samsung..." />
+                </div>
+
+                <div className="input-group">
+                  <label>Model</label>
+                  <input name="model" value={updateForm.model} onChange={handleUpdateChange} placeholder="Model name" />
+                </div>
+
+                <div className="input-group">
+                  <label>Condition</label>
+                  <select name="condition" value={updateForm.condition} onChange={handleUpdateChange}>
+                    {CONDITIONS.map((condition) => (
+                      <option key={condition} value={condition}>
+                        {condition}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="input-group">
+                  <label>Quantity</label>
+                  <input
+                    name="quantity"
+                    type="number"
+                    min={1}
+                    max={1000}
+                    value={updateForm.quantity}
+                    onChange={handleUpdateChange}
+                  />
+                </div>
+
+                <div className="input-group update-form-full">
+                  <label>Pickup Address</label>
+                  <textarea
+                    name="pickupAddress"
+                    rows={3}
+                    value={updateForm.pickupAddress}
+                    onChange={handleUpdateChange}
+                    placeholder="Enter pickup address"
+                  />
+                </div>
+
+                <div className="input-group update-form-full">
+                  <label>Additional Remarks (Optional)</label>
+                  <textarea
+                    name="additionalRemarks"
+                    rows={3}
+                    value={updateForm.additionalRemarks}
+                    onChange={handleUpdateChange}
+                    placeholder="Any notes for pickup team"
+                  />
+                </div>
+
+                <div className="input-group update-form-full">
+                  <label>Update Image (Optional)</label>
+                  <input type="file" accept="image/*" onChange={(event) => setUpdateImageFile(event.target.files?.[0] || null)} />
+                  <div className="update-image-note">
+                    {updateImageFile ? `Selected: ${updateImageFile.name}` : "Leave empty to keep existing image."}
+                  </div>
+                </div>
+              </div>
+
+              <div className="profile-actions">
+                <button className="btn ghost" type="button" onClick={closeUpdateModal} disabled={updateLoading}>
+                  Cancel
+                </button>
+                <button className="btn primary" type="submit" disabled={updateLoading}>
+                  {updateLoading ? "Updating..." : "Save Changes"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {mapPickerOpen && (
+        <div className="popup-overlay">
+          <div className="popup-box map-picker-popup-box">
+            <h2>Select Pickup Location</h2>
+            <p>Search in the map, choose a location, then use it for pickup address.</p>
+
+            <form className="map-picker-search" onSubmit={handleSearchMapLocations}>
+              <input
+                value={mapSearchQuery}
+                onChange={(event) => setMapSearchQuery(event.target.value)}
+                placeholder="Search by area, landmark, or address"
+              />
+              <button className="btn primary" type="submit" disabled={mapSearchLoading}>
+                {mapSearchLoading ? "Searching..." : "Search"}
+              </button>
+            </form>
+
+            {mapSearchError && <div className="field-error">{mapSearchError}</div>}
+
+            {selectedMapResult && (
+              <div className="map-preview-wrap">
+                <MapContainer
+                  center={[selectedMapResult.lat, selectedMapResult.lon]}
+                  zoom={16}
+                  className="map-preview-frame"
+                  scrollWheelZoom
+                >
+                  <MapCenterUpdater center={selectedMapResult} />
+                  <MapClickSetter onPick={setMapPointAndResolveAddress} />
+                  <TileLayer
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  />
+                  <Marker
+                    position={[selectedMapResult.lat, selectedMapResult.lon]}
+                    icon={MAP_PIN_ICON}
+                    draggable
+                    eventHandlers={{
+                      dragend: (event) => {
+                        const { lat, lng } = event.target.getLatLng();
+                        setMapPointAndResolveAddress(lat, lng);
+                      }
+                    }}
+                  />
+                </MapContainer>
+                <div className="map-pin-meta">
+                  {mapPinLoading
+                    ? "Updating address from moved pin..."
+                    : `Drag marker or click map. Lat ${selectedMapResult.lat.toFixed(6)} | Lon ${selectedMapResult.lon.toFixed(6)}`}
+                </div>
+              </div>
+            )}
+
+            {mapResults.length > 0 && (
+              <div className="map-results-list">
+                {mapResults.map((result) => (
+                  <button
+                    key={result.id}
+                    type="button"
+                    className={`map-result-item ${selectedMapResult?.id === result.id ? "is-selected" : ""}`}
+                    onClick={() => setSelectedMapResult(result)}
+                  >
+                    {result.displayName}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <div className="profile-actions map-picker-actions">
+              <button className="btn ghost" type="button" onClick={handleCloseMapPicker}>
+                Cancel
+              </button>
+              <button className="btn primary" type="button" onClick={handleUseMapLocation} disabled={!selectedMapResult}>
+                Use Selected Location
               </button>
             </div>
           </div>
