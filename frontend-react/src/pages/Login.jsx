@@ -66,7 +66,7 @@ export default function Login() {
 
   return (
     <AuthLayout
-      title="Welcome back"
+      title="Welcome back!"
       subtitle="Login with your email and password"
       footer={
         <span>
@@ -79,7 +79,7 @@ export default function Login() {
     >
       <form
         onSubmit={onSubmit}
-        className="form-grid"
+        className="form-grid login-form"
       >
 
         {/* EMAIL */}
