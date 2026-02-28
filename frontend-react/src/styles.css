@@ -1,4 +1,4 @@
-﻿﻿﻿:root {
+﻿﻿:root {
   color-scheme: light;
   /* Light Mode (Default) */
   --bg-1: #f7fcff;
@@ -724,7 +724,7 @@ select {
 }
 
 .home-header {
-  width: min(980px, 100%);
+  width: min(820px, 100%); /* narrowed dashboard header */
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -737,6 +737,18 @@ select {
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
+}
+
+/* compact buttons for header and hero area */
+.home-header-actions .btn,
+.pin-hero-actions .btn {
+  padding: 10px 18px;
+  font-size: 13px;
+}
+
+/* tighten spacing between header action buttons */
+.home-header-actions {
+  gap: 8px;
 }
 
 .home-hero-centered {
@@ -1062,13 +1074,50 @@ select {
   animation: fadeUp 0.6s ease;
 }
 
+/* Ensure readable text colors inside main containers (uses theme variables) */
+.content-card,
+.request-card,
+.request-form-card,
+.request-list-card,
+.request-step-card,
+.review-card,
+.fk-list-item,
+.fk-list-delivery,
+.fk-list-status,
+.popup-box {
+  color: var(--ink-1);
+}
+
+.content-card p,
+.request-step-card p,
+.review-card p,
+.fk-list-delivery p,
+.fk-list-status-copy,
+.fk-meta-line,
+.page-subtitle,
+.grid-text {
+  color: var(--ink-2);
+}
+
+/* Make ghost buttons clearly readable on both themes */
+.btn.ghost {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--border);
+  color: var(--ink-1);
+}
+
+[data-theme="dark"] .btn.ghost {
+  background: rgba(255,255,255,0.03);
+  color: var(--ink-1);
+}
+
 .profile-card {
   width: min(720px, 100%);
 }
 
 .profile-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap: 18px;
 }
 
@@ -1082,12 +1131,6 @@ select {
 .pickup-address-actions {
   display: flex;
   justify-content: flex-start;
-<<<<<<< HEAD
-  margin-bottom: 12px;
-=======
-  gap: 8px;
-  flex-wrap: wrap;
->>>>>>> e2658c263089ff32260a74d0204389497a65dc80
 }
 
 .btn-location {
@@ -1205,7 +1248,8 @@ select {
 
 .request-step-card-head {
   display: grid;
-  gap: 8px;
+  gap: 12px;
+  margin-bottom: 12px;
 }
 
 .request-step-card-kicker {
@@ -1235,7 +1279,7 @@ select {
 
 .review-layout {
   display: grid;
-  grid-template-columns: 1.2fr 1fr;
+  grid-template-columns: 1fr;
   gap: 20px;
 }
 
@@ -1317,7 +1361,7 @@ select {
 }
 
 .request-card {
-  width: min(980px, 100%);
+  width: min(780px, 100%);
 }
 
 .request-list-card {
@@ -1329,6 +1373,18 @@ select {
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
 }
 
+/* Match header spacing in list container to the form container */
+.request-list-card .page-title {
+  margin-bottom: 6px;
+}
+
+.request-list-card .page-subtitle {
+  margin-bottom: 20px;
+  color: var(--ink-2);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
 .request-form-card {
   order: 2;
   background: var(--surface);
@@ -1338,6 +1394,17 @@ select {
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
 }
 
+/* Scope header spacing for the submit request form only */
+.request-form-card .page-title {
+  margin-bottom: 6px;
+}
+
+.request-form-card .page-subtitle {
+  margin-bottom: 20px;
+  color: var(--ink-2);
+  font-size: 14px;
+  line-height: 1.6;
+}
 .request-tracking-card {
   order: 3;
   background: var(--surface);
@@ -1426,25 +1493,17 @@ select {
 }
 
 .fk-list-item {
-<<<<<<< HEAD
   border: 1.5px solid var(--border);
   border-radius: 18px;
-  background: var(--surface);
-  padding: 18px;
-=======
-  border: 1px solid rgba(148, 163, 184, 0.28);
-  border-radius: 18px;
   background:
-    radial-gradient(220px 140px at 0% 0%, rgba(14, 165, 233, 0.08), transparent 70%),
-    radial-gradient(240px 160px at 100% 0%, rgba(16, 185, 129, 0.08), transparent 70%),
-    #ffffff;
-  padding: 14px;
->>>>>>> e2658c263089ff32260a74d0204389497a65dc80
+    radial-gradient(220px 140px at 0% 0%, rgba(14, 165, 233, 0.06), transparent 70%),
+    radial-gradient(240px 160px at 100% 0%, rgba(16, 185, 129, 0.06), transparent 70%),
+    var(--surface);
+  padding: 18px;
   display: grid;
   grid-template-columns: minmax(260px, 1.1fr) minmax(280px, 1fr) minmax(220px, 0.8fr);
   gap: 18px;
   align-items: stretch;
-<<<<<<< HEAD
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
   transition: all 0.3s ease;
 }
@@ -1456,44 +1515,32 @@ select {
 
 [data-theme="dark"] .fk-list-item:hover {
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
-=======
   box-shadow: 0 16px 36px rgba(15, 23, 42, 0.08);
->>>>>>> e2658c263089ff32260a74d0204389497a65dc80
 }
 
 .fk-list-product {
-  display: grid;
-  grid-template-columns: 96px minmax(0, 1fr);
-  gap: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   align-items: center;
+  justify-content: center;
 }
 
 .fk-list-thumb {
-  width: 96px;
-  height: 96px;
-<<<<<<< HEAD
-  border-radius: 16px;
+  width: 80px;
+  height: 80px;
+  border-radius: 14px;
   border: 2px solid var(--accent-1);
   background:
     radial-gradient(90px 50px at 80% -10%, rgba(14, 165, 164, 0.1), transparent 75%),
     var(--surface);
   color: var(--accent-2);
-=======
-  border-radius: 14px;
-  border: 1px solid rgba(59, 130, 246, 0.25);
-  background:
-    radial-gradient(90px 50px at 80% -10%, rgba(14, 165, 233, 0.22), transparent 75%),
-    linear-gradient(145deg, #f8fbff, #eef8ff);
-  color: #0f172a;
->>>>>>> e2658c263089ff32260a74d0204389497a65dc80
   display: grid;
   place-items: center;
-  font-size: 26px;
+  font-size: 24px;
   font-weight: 700;
   letter-spacing: 0.04em;
-<<<<<<< HEAD
   box-shadow: 0 4px 16px rgba(14, 165, 164, 0.12);
-=======
   text-transform: uppercase;
   font-family: "Space Grotesk", sans-serif;
 }
@@ -1503,7 +1550,6 @@ select {
   height: 100%;
   border-radius: 12px;
   object-fit: cover;
->>>>>>> e2658c263089ff32260a74d0204389497a65dc80
 }
 .fk-list-meta {
   min-width: 0;
@@ -1514,7 +1560,6 @@ select {
 .fk-list-title {
   font-size: 18px;
   font-weight: 700;
-<<<<<<< HEAD
   color: var(--ink-1);
   font-family: 'Space Grotesk', sans-serif;
 }
@@ -1522,7 +1567,6 @@ select {
 .fk-list-subtitle {
   margin-top: 6px;
   color: var(--ink-2);
-=======
   font-family: "Space Grotesk", sans-serif;
   color: #0f172a;
 }
@@ -1530,14 +1574,12 @@ select {
 .fk-list-subtitle {
   margin-top: 5px;
   color: #5b6475;
->>>>>>> e2658c263089ff32260a74d0204389497a65dc80
   font-size: 13px;
   letter-spacing: 0.01em;
 }
 
 .fk-list-id {
   margin-top: 8px;
-<<<<<<< HEAD
   color: var(--accent-1);
   font-size: 12px;
   font-weight: 600;
@@ -1549,7 +1591,6 @@ select {
   background: var(--surface);
   padding: 16px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
-=======
   color: #94a3b8;
   font-size: 11px;
 }
@@ -1559,7 +1600,6 @@ select {
   border-radius: 14px;
   background: linear-gradient(135deg, rgba(248, 250, 252, 0.85), rgba(241, 245, 249, 0.85));
   padding: 12px;
->>>>>>> e2658c263089ff32260a74d0204389497a65dc80
 }
 
 .fk-list-delivery p {
@@ -1570,17 +1610,14 @@ select {
 }
 
 .fk-list-status {
-<<<<<<< HEAD
   border: 1.5px solid var(--border);
   border-radius: 16px;
   background: var(--surface);
   padding: 16px;
-=======
   border: 1px solid rgba(148, 163, 184, 0.28);
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.92);
   padding: 12px;
->>>>>>> e2658c263089ff32260a74d0204389497a65dc80
   display: grid;
   align-content: start;
   gap: 12px;
@@ -1688,7 +1725,6 @@ select {
 }
 
 .status-submitted {
-<<<<<<< HEAD
   background: #e0edff;
   color: #0d47a1;
   border-color: #bfdbfe;
@@ -1758,7 +1794,6 @@ select {
   color: #1e293b;
   border-color: #cbd5e1;
   font-weight: 600;
-=======
   background: rgba(37, 99, 235, 0.12);
   color: #1e40af;
   border-color: rgba(37, 99, 235, 0.35);
@@ -1792,7 +1827,6 @@ select {
   background: rgba(148, 163, 184, 0.2);
   color: #334155;
   border-color: rgba(148, 163, 184, 0.5);
->>>>>>> e2658c263089ff32260a74d0204389497a65dc80
 }
 
 [data-theme="dark"] .status-other {
@@ -2554,8 +2588,8 @@ select {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
+  gap: 32px;
 }
-
 .update-form-full {
   grid-column: span 2;
 }
@@ -2785,7 +2819,7 @@ select {
   width: 44px;
   height: 44px;
   border-radius: 12px;
-  background: linear-gradient(135deg, #0f766e 0%, #0ea5a4 100%);
+  gap: 22px;
   color: #ffffff;
   font-family: "Space Grotesk", sans-serif;
   font-weight: 700;
@@ -2801,21 +2835,19 @@ select {
 }
 
 .pin-dashboard-header .brand-name {
-  font-family: "Georgia", "Segoe UI", serif;
-  font-size: 20px;
-  font-weight: 600;
-  font-style: italic;
-  color: var(--ink-1);
-  letter-spacing: 0.8px;
+.request-stepper-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 14px;
+  align-items: center;
+  position: relative;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1.25px solid var(--border);
+  background: var(--surface);
+  transition: all 0.25s ease;
 }
-
-.pin-dashboard-header .brand-tag {
-  font-size: 12px;
-  color: var(--ink-2);
-  margin-top: 2px;
-  font-style: italic;
 }
-
 .home-header-actions {
   display: flex;
   gap: 12px;
@@ -2828,19 +2860,19 @@ select {
   color: #ffffff;
   padding: 12px 24px;
   border-radius: 10px;
-  font-weight: 600;
-  font-size: 14px;
-  border: none;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+.request-step-badge {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border);
+  color: var(--ink-2);
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 700;
+  background: rgba(14, 165, 164, 0.06);
+  transition: all 0.22s ease;
 }
-
-.pin-btn-primary:hover {
-  transform: translateY(-2px);
   box-shadow: 0 14px 28px rgba(14, 165, 164, 0.35);
 }
 
@@ -2858,17 +2890,15 @@ select {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+.request-step-card {
+  border: 1.25px solid var(--border);
+  border-radius: 16px;
+  padding: 20px;
+  background: var(--surface);
+  display: grid;
+  gap: 16px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);
 }
-
-.pin-btn-ghost:hover {
-  border-color: var(--accent-1);
-  background: rgba(14, 165, 164, 0.05);
-  transform: translateY(-1px);
-}
-
-.pin-hero-card {
-  width: min(1120px, 100%);
-  border-radius: 20px;
   padding: 40px;
   border: 2px solid rgba(14, 165, 164, 0.15);
   background: var(--surface);
@@ -3516,10 +3546,45 @@ select {
 .auth-shell:has(.login-form) {
   background: linear-gradient(135deg, #f0fdf9 0%, #f3f4ff 100%);
   min-height: 100vh;
+  position: relative;
+  overflow: hidden;
+  perspective: 1000px; /* enable 3d space */
 }
+
+/* pseudo-element holds rotating ewaste-themed pattern */
+.auth-shell:has(.login-form)::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cg opacity='0.1'%3E%3Cpath d='M20 20h160v160H20z' fill='none' stroke='%2300a4f4' stroke-width='4'/%3E%3Ctext x='50%' y='50%' font-size='24' fill='%2300a4f4' text-anchor='middle' dominant-baseline='middle'%3EE-WASTE%3C/text%3E%3C/g%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 200px 200px;
+  transform-style: preserve-3d;
+  transition: transform 0.5s ease;
+  animation: rotateBg 20s linear infinite;
+  pointer-events: none;
+}
+
+.auth-shell:has(.login-form):hover::before {
+  transform: rotateX(20deg) rotateY(20deg) scale(1.1);
+}
+
+@keyframes rotateBg {
+  from { transform: rotateZ(0deg); }
+  to   { transform: rotateZ(360deg); }
+}
+
 
 [data-theme="dark"] .auth-shell:has(.login-form) {
   background: linear-gradient(135deg, rgba(15, 20, 25, 0.8) 0%, rgba(20, 25, 35, 0.8) 100%);
+}
+
+/* dark mode version of the rotating pattern */
+[data-theme="dark"] .auth-shell:has(.login-form)::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cg opacity='0.06'%3E%3Cpath d='M20 20h160v160H20z' fill='none' stroke='%2306d6d0' stroke-width='4'/%3E%3Ctext x='50%' y='50%' font-size='24' fill='%2306d6d0' text-anchor='middle' dominant-baseline='middle'%3EE-WASTE%3C/text%3E%3C/g%3E%3C/svg%3E");
 }
 
 .login-form {
@@ -3565,6 +3630,17 @@ select {
 
 [data-theme="dark"] .login-form input::placeholder {
   color: var(--ink-2);
+}
+
+/* card tilt for 3d effect */
+.auth-card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transform-style: preserve-3d;
+}
+
+.auth-shell:has(.login-form):hover .auth-card {
+  transform: rotateY(6deg) rotateX(3deg);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.15);
 }
 
 
