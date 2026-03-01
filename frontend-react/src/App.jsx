@@ -23,65 +23,53 @@ export default function App() {
     <>
       <ThemeToggle />
       <Routes>
-      <Route path="/" element={<LandingPage />} />
-      <Route path="/" element={<Home />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-      <Route path="/verify-otp" element={<OtpVerify />} />
-      <Route path="/profile/me" element={<Profile />} />
-      <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/reset-password" element={<ResetPassword />} />
-      <Route
-        path="/dashboard"
-        element={
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/home" element={<Home />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/verify-otp" element={<OtpVerify />} />
+        <Route path="/profile/me" element={<Profile />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+
+        <Route path="/dashboard" element={
           <ProtectedRoute>
             <Dashboard />
           </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/profile"
-        element={
+        }/>
+
+        <Route path="/profile" element={
           <ProtectedRoute>
             <Profile />
           </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/requests"
-        element={
+        }/>
+
+        <Route path="/requests" element={
           <ProtectedRoute>
             <Navigate to="/requests/view" replace />
           </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/requests/submit"
-        element={
+        }/>
+
+        <Route path="/requests/submit" element={
           <ProtectedRoute>
             <Requests mode="submit" />
           </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/requests/view"
-        element={
+        }/>
+
+        <Route path="/requests/view" element={
           <ProtectedRoute>
             <Requests mode="view" />
           </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/requests/track/:id"
-        element={
+        }/>
+
+        <Route path="/requests/track/:id" element={
           <ProtectedRoute>
             <RequestTracking />
           </ProtectedRoute>
-        }
-      />
-      <Route path="*" element={<Navigate to="/" replace />} />
+        }/>
+
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>
   );
 }
-

@@ -9,92 +9,68 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="home-shell pin-dashboard-shell">
-      <header className="home-header pin-dashboard-header">
-        <div className="brand">
-          <div className="brand-mark">EW</div>
-          <div>
-            <div className="brand-name">E-Waste Management</div>
-            <div className="brand-tag">Sustainable disposal made simple</div>
-          </div>
-        </div>
+    <div className="eco-dashboard">
 
-        <div className="home-header-actions">
-          <Link to="/requests/submit" className="btn pin-btn-primary">
-            Submit Request
+      {/* NAVBAR */}
+      <header className="eco-navbar">
+        <div className="eco-logo">🌿 EcoCircuit</div>
+
+        <div className="eco-nav-buttons">
+          <Link to="/requests/submit" className="eco-btn primary">
+            Submit
           </Link>
-          <Link to="/requests/view" className="btn pin-btn-ghost">
-            View Requests
+
+          <Link to="/requests/view" className="eco-btn outline">
+            Requests
           </Link>
-          <Link to="/profile/me" className="btn pin-btn-ghost">
+
+          <Link to="/profile/me" className="eco-btn outline">
             Profile
           </Link>
-          <button className="btn pin-btn-ghost" onClick={handleLogout}>
+
+          <button onClick={handleLogout} className="eco-btn danger">
             Logout
           </button>
         </div>
       </header>
 
-      <section className="pin-hero-card">
-
-        <h1>
-          Responsible Disposal, <span>Lasting Legacy</span>
-        </h1>
+      {/* HERO SECTION */}
+      <section className="eco-hero">
+        <h1>Smart E-Waste Recycling Made Simple</h1>
         <p>
-          Transform your environmental impact. Seamlessly submit electronics for responsible recycling, track every step of the journey, and join thousands making sustainable choices. Your waste management, powered by transparency and accountability.
+          Responsible disposal. Transparent tracking.
+          Sustainable impact for a greener tomorrow.
         </p>
-        <div className="pin-hero-actions">
-          <Link to="/requests/submit" className="btn pin-btn-primary">
-            Create Pickup
-          </Link>
-          <Link to="/requests/view" className="btn pin-btn-ghost">
-            Open Requests
-          </Link>
-        </div>
+
+        <Link to="/requests/submit" className="eco-btn hero">
+          Schedule Pickup
+        </Link>
       </section>
 
-      <section className="pin-board-grid">
-        <article className="pin-card pin-card-tall pin-card-olive">
-          <div className="pin-card-kicker">Doorstep Pickup</div>
-          <h3>Share details once, we handle the route.</h3>
-          <p>Add device info, pickup location, and preferred notes in a guided flow.</p>
-          <Link to="/requests/submit" className="pin-card-link">
-            Start submission
-          </Link>
-        </article>
+      {/* FEATURE CARDS */}
+      <section className="eco-card-grid">
 
-        <article className="pin-card pin-card-short pin-card-cream">
-          <div className="pin-card-kicker">Live Status</div>
-          <h3>Submitted to recycled.</h3>
-          <p>Follow every request stage with a clear timeline view.</p>
-          <Link to="/requests/view" className="pin-card-link">
-            View all requests
-          </Link>
-        </article>
+        <div className="eco-card">
+          <div className="eco-icon">🚚</div>
+          <h3>Doorstep Pickup</h3>
+          <p>Schedule device collection quickly and easily.</p>
+          <Link to="/requests/submit">Create Request →</Link>
+        </div>
 
-        <article className="pin-card pin-card-mid pin-card-rose">
-          <div className="pin-card-kicker">Profile Ready</div>
-          <h3>Keep contact details updated.</h3>
-          <p>Accurate profile data helps pickup teams reach you faster.</p>
-          <Link to="/profile/me" className="pin-card-link">
-            Update profile
-          </Link>
-        </article>
+        <div className="eco-card">
+          <div className="eco-icon">📍</div>
+          <h3>Live Tracking</h3>
+          <p>Track your recycling request in real time.</p>
+          <Link to="/requests/view">View Status →</Link>
+        </div>
 
-        <article className="pin-card pin-card-mid pin-card-white">
-          <div className="pin-card-kicker">Quick Tips</div>
-          <ul className="pin-list">
-            <li>Upload a clear device image for faster review.</li>
-            <li>Use live location to avoid address mismatches.</li>
-            <li>Track status changes from your requests page.</li>
-          </ul>
-        </article>
+        <div className="eco-card">
+          <div className="eco-icon">🔐</div>
+          <h3>Secure Profile</h3>
+          <p>Manage your account and personal information.</p>
+          <Link to="/profile/me">Manage →</Link>
+        </div>
 
-        <article className="pin-card pin-card-short pin-card-sky">
-          <div className="pin-card-kicker">Recycling Promise</div>
-          <h3>Responsible disposal only.</h3>
-          <p>Devices are handled through an eco-conscious process.</p>
-        </article>
       </section>
     </div>
   );

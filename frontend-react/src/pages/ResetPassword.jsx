@@ -1,34 +1,27 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { FaEye, FaEyeSlash } from "react-icons/fa";   // 👈 ADDED
+import { useNavigate, useLocation } from "react-router-dom";
+import { FaEye, FaEyeSlash } from "react-icons/fa";
 import AuthLayout from "../components/AuthLayout.jsx";
 import { apiRequest } from "../api.js";
 
 export default function ResetPassword() {
 
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const email =
-    localStorage.getItem("resetEmail") || "";
+  // 👇 GET EMAIL FROM PROFILE PAGE
+  const email = location.state?.email || "";
 
   const [otp, setOtp] = useState("");
-  const [password, setPassword] =
-    useState("");
-  const [confirmPassword,
-    setConfirmPassword] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   const [error, setError] = useState("");
-  const [status, setStatus] =
-    useState("");
-  const [loading, setLoading] =
-    useState(false);
+  const [status, setStatus] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  // 👁️ TOGGLE STATES
-  const [showPassword,
-    setShowPassword] = useState(false);
-  const [showConfirmPassword,
-    setShowConfirmPassword] =
-      useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const onSubmit = async (e) => {
 
@@ -36,12 +29,16 @@ export default function ResetPassword() {
     setError("");
     setStatus("");
 
+    if (!email) {
+      setError("Email not found. Please try again.");
+      return;
+    }
+
     if (password !== confirmPassword) {
       setError("Passwords do not match ❌");
       return;
     }
 
-    // 🔐 Strong password validation
     const regex =
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$/;
 
@@ -66,8 +63,7 @@ export default function ResetPassword() {
         {
           method: "POST",
           headers: {
-            "Content-Type":
-              "application/json"
+            "Content-Type": "application/json"
           },
           body: JSON.stringify({
             email,
@@ -77,14 +73,7 @@ export default function ResetPassword() {
         }
       );
 
-      setStatus(
-        res.message ||
-        "Password reset successful ✅"
-      );
-
-      localStorage.removeItem(
-        "resetEmail"
-      );
+      setStatus(res.message || "Password reset successful ✅");
 
       setTimeout(() => {
         navigate("/login");
@@ -100,125 +89,66 @@ export default function ResetPassword() {
   return (
     <AuthLayout
       title="Reset Password"
-      subtitle={`OTP sent to ${email}`}
+      subtitle={`OTP sent to ${email || "your registered email"}`}
     >
-      <form
-        onSubmit={onSubmit}
-        className="form-grid"
-      >
+      <form onSubmit={onSubmit} className="form-grid">
 
-        {/* OTP */}
         <div className="input-group">
           <label>OTP</label>
           <input
             value={otp}
-            onChange={(e) =>
-              setOtp(e.target.value)
-            }
+            onChange={(e) => setOtp(e.target.value)}
             required
           />
         </div>
 
-        {/* NEW PASSWORD 👁️ */}
         <div className="input-group">
           <label>New Password</label>
 
           <div className="password-wrapper">
-
             <input
-              type={
-                showPassword
-                  ? "text"
-                  : "password"
-              }
+              type={showPassword ? "text" : "password"}
               value={password}
-              onChange={(e) =>
-                setPassword(
-                  e.target.value
-                )
-              }
+              onChange={(e) => setPassword(e.target.value)}
               required
             />
-
             <button
               type="button"
               className="toggle-eye"
-              onClick={() =>
-                setShowPassword(
-                  !showPassword
-                )
-              }
+              onClick={() => setShowPassword(!showPassword)}
             >
-              {showPassword
-                ? <FaEyeSlash />
-                : <FaEye />}
+              {showPassword ? <FaEyeSlash /> : <FaEye />}
             </button>
-
           </div>
         </div>
 
-        {/* CONFIRM PASSWORD 👁️ */}
         <div className="input-group">
-          <label>
-            Confirm Password
-          </label>
+          <label>Confirm Password</label>
 
           <div className="password-wrapper">
-
             <input
-              type={
-                showConfirmPassword
-                  ? "text"
-                  : "password"
-              }
+              type={showConfirmPassword ? "text" : "password"}
               value={confirmPassword}
-              onChange={(e) =>
-                setConfirmPassword(
-                  e.target.value
-                )
-              }
+              onChange={(e) => setConfirmPassword(e.target.value)}
               required
             />
-
             <button
               type="button"
               className="toggle-eye"
               onClick={() =>
-                setShowConfirmPassword(
-                  !showConfirmPassword
-                )
+                setShowConfirmPassword(!showConfirmPassword)
               }
             >
-              {showConfirmPassword
-                ? <FaEyeSlash />
-                : <FaEye />}
+              {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
             </button>
-
           </div>
         </div>
 
-        {/* ERROR */}
-        {error && (
-          <div className="form-error">
-            {error}
-          </div>
-        )}
+        {error && <div className="form-error">{error}</div>}
+        {status && <div className="form-success">{status}</div>}
 
-        {/* SUCCESS */}
-        {status && (
-          <div className="form-success">
-            {status}
-          </div>
-        )}
-
-        {/* BUTTON */}
-        <button
-          className="btn primary"
-          disabled={loading}
-        >
-          {loading
-            ? "Resetting..."
-            : "Reset Password"}
+        <button className="btn primary" disabled={loading}>
+          {loading ? "Resetting..." : "Reset Password"}
         </button>
 
       </form>
