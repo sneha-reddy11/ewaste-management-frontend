@@ -10,6 +10,8 @@ export default function Dashboard() {
 
   return (
     <div className="home-shell pin-dashboard-shell">
+      
+      {/* Header Section */}
       <header className="home-header pin-dashboard-header">
         <div className="brand">
           <div className="brand-mark">EW</div>
@@ -19,7 +21,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="home-header-actions">
+        <div className="home-header-actions" style={{ display: 'flex', gap: '12px' }}>
           <Link to="/requests/submit" className="btn pin-btn-primary">
             Submit Request
           </Link>
@@ -35,15 +37,15 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <section className="pin-hero-card">
-
-        <h1>
-          Responsible Disposal, <span>Lasting Legacy</span>
+      {/* Hero Section */}
+      <section className="pin-hero-card" style={{ width: '100%', maxWidth: '1120px', margin: '0 auto 32px' }}>
+        <h1 style={{ fontSize: '42px', marginBottom: '16px', fontWeight: '800' }}>
+          Responsible Disposal, <span style={{ color: 'var(--accent-1)' }}>Lasting Legacy</span>
         </h1>
-        <p>
+        <p style={{ color: 'var(--ink-2)', lineHeight: '1.6', marginBottom: '28px', maxWidth: '800px' }}>
           Transform your environmental impact. Seamlessly submit electronics for responsible recycling, track every step of the journey, and join thousands making sustainable choices. Your waste management, powered by transparency and accountability.
         </p>
-        <div className="pin-hero-actions">
+        <div className="pin-hero-actions" style={{ display: 'flex', gap: '16px' }}>
           <Link to="/requests/submit" className="btn pin-btn-primary">
             Create Pickup
           </Link>
@@ -53,48 +55,58 @@ export default function Dashboard() {
         </div>
       </section>
 
-      <section className="pin-board-grid">
-        <article className="pin-card pin-card-tall pin-card-olive">
+      {/* Feature Grid Section */}
+      <section className="pin-board-grid" style={{ 
+        width: '100%', 
+        maxWidth: '1120px', 
+        margin: '0 auto', 
+        display: 'grid', 
+        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
+        gap: '24px' 
+      }}>
+        
+        <article className="pin-card pin-card-olive" style={{ padding: '32px', borderRadius: '24px' }}>
           <div className="pin-card-kicker">Doorstep Pickup</div>
-          <h3>Share details once, we handle the route.</h3>
-          <p>Add device info, pickup location, and preferred notes in a guided flow.</p>
-          <Link to="/requests/submit" className="pin-card-link">
-            Start submission
+          <h3 style={{ fontSize: '20px', marginBottom: '12px' }}>Share details once, we handle the route.</h3>
+          <p style={{ marginBottom: '24px' }}>Add device info, pickup location, and preferred notes in a guided flow.</p>
+          <Link to="/requests/submit" className="pin-card-link" style={{ fontWeight: '700', textDecoration: 'none', color: 'var(--accent-1)' }}>
+            Start submission →
           </Link>
         </article>
 
-        <article className="pin-card pin-card-short pin-card-cream">
+        <article className="pin-card pin-card-cream" style={{ padding: '32px', borderRadius: '24px' }}>
           <div className="pin-card-kicker">Live Status</div>
-          <h3>Submitted to recycled.</h3>
-          <p>Follow every request stage with a clear timeline view.</p>
-          <Link to="/requests/view" className="pin-card-link">
-            View all requests
+          <h3 style={{ fontSize: '20px', marginBottom: '12px' }}>Submitted to recycled.</h3>
+          <p style={{ marginBottom: '24px' }}>Follow every request stage with a clear timeline view.</p>
+          <Link to="/requests/view" className="pin-card-link" style={{ fontWeight: '700', textDecoration: 'none', color: 'var(--accent-1)' }}>
+            View all requests →
           </Link>
         </article>
 
-        <article className="pin-card pin-card-mid pin-card-rose">
+        <article className="pin-card pin-card-rose" style={{ padding: '32px', borderRadius: '24px' }}>
           <div className="pin-card-kicker">Profile Ready</div>
-          <h3>Keep contact details updated.</h3>
-          <p>Accurate profile data helps pickup teams reach you faster.</p>
-          <Link to="/profile/me" className="pin-card-link">
-            Update profile
+          <h3 style={{ fontSize: '20px', marginBottom: '12px' }}>Keep contact details updated.</h3>
+          <p style={{ marginBottom: '24px' }}>Accurate profile data helps pickup teams reach you faster.</p>
+          <Link to="/profile/me" className="pin-card-link" style={{ fontWeight: '700', textDecoration: 'none', color: 'var(--accent-1)' }}>
+            Update profile →
           </Link>
         </article>
 
-        <article className="pin-card pin-card-mid pin-card-white">
+        <article className="pin-card pin-card-white" style={{ padding: '32px', borderRadius: '24px' }}>
           <div className="pin-card-kicker">Quick Tips</div>
-          <ul className="pin-list">
+          <ul className="pin-list" style={{ marginTop: '12px', display: 'grid', gap: '12px', paddingLeft: '20px' }}>
             <li>Upload a clear device image for faster review.</li>
             <li>Use live location to avoid address mismatches.</li>
             <li>Track status changes from your requests page.</li>
           </ul>
         </article>
 
-        <article className="pin-card pin-card-short pin-card-sky">
+        <article className="pin-card pin-card-sky" style={{ padding: '32px', borderRadius: '24px' }}>
           <div className="pin-card-kicker">Recycling Promise</div>
-          <h3>Responsible disposal only.</h3>
-          <p>Devices are handled through an eco-conscious process.</p>
+          <h3 style={{ fontSize: '20px', marginBottom: '12px' }}>Responsible disposal only.</h3>
+          <p>Devices are handled through an eco-conscious process using industry-standard protocols.</p>
         </article>
+
       </section>
     </div>
   );
