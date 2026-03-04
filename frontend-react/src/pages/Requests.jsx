@@ -33,20 +33,18 @@ import { apiRequest } from "../api.js";
 const CONDITIONS = ["WORKING", "DAMAGED", "DEAD"];
 const DEVICE_TYPES = ["Laptop", "Mobile", "Tablet", "Desktop", "Monitor", "Printer", "Battery", "Other"];
 const STATUS_LABELS = {
-  SUBMITTED: "Submitted",
-  PICKUP_SCHEDULED: "Scheduled",
-  PICKED_UP: "Picked Up",
-  RECYCLED: "Recycled",
+  PENDING: "Pending Approval",
+  ACCEPTED: "Accepted",
   REJECTED: "Rejected",
-  OTHER: "Other"
+  SCHEDULED: "Pickup Scheduled",
+  PICKED_UP: "Picked Up"
 };
 const STATUS_DETAILS = {
-  SUBMITTED: "Your request has been received and is awaiting assignment to a pickup partner.",
-  PICKUP_SCHEDULED: "A pickup partner has been scheduled to collect your items.",
-  PICKED_UP: "The items have been collected and are being transported to the recycling facility.",
-  RECYCLED: "Great news! Your electronic waste has been successfully processed and recycled.",
-  REJECTED: "Unfortunately, this request could not be accepted. Please review the details.",
-  OTHER: "The status of your request has been updated."
+  PENDING: "Your request is waiting for admin approval.",
+  ACCEPTED: "Your request has been accepted and will be scheduled soon.",
+  REJECTED: "Unfortunately, your request was rejected by the admin.",
+  SCHEDULED: "Pickup date and time have been scheduled.",
+  PICKED_UP: "Your e-waste has been successfully collected."
 };
 const FORM_STEPS = [
   { id: 1, title: "Device", hint: "Item details" },
@@ -578,7 +576,7 @@ export default function Requests({ mode = "all" }) {
                       <p style={{ fontSize: '14px', color: 'var(--ink-2)', textAlign: 'center', marginBottom: '32px', lineHeight: '1.6', fontWeight: '500' }}>{STATUS_DETAILS[req.status]}</p>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', width: '100%' }}>
                         <button className="btn" style={{ background: 'var(--surface)', border: '2px solid var(--border)', color: 'var(--ink-1)', fontWeight: '700', padding: '12px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }} onClick={() => navigate(`/requests/track/${req.id}`)}><FaCompass size={16} color="var(--accent-1)" /> Track</button>
-                        {req.status === "SUBMITTED" && <button className="btn" style={{ background: 'var(--surface)', border: '2px solid var(--border)', color: 'var(--ink-1)', fontWeight: '700', padding: '12px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }} onClick={() => openUpdateModal(req)}><FaEdit size={16} color="var(--accent-1)" /> Edit</button>}
+                        {req.status === "PENDING" && <button className="btn" style={{ background: 'var(--surface)', border: '2px solid var(--border)', color: 'var(--ink-1)', fontWeight: '700', padding: '12px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }} onClick={() => openUpdateModal(req)}><FaEdit size={16} color="var(--accent-1)" /> Edit</button>}
                         <button className="btn" style={{ gridColumn: 'span 2', background: 'var(--surface)', border: '2px solid rgba(239, 68, 68, 0.3)', color: '#dc2626', fontWeight: '700', padding: '12px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }} onClick={() => setPendingDeleteId(req.id)}><FaTrashAlt size={16} /> Delete Request</button>
                       </div>
                     </div>
