@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { 
   FaChevronLeft, 
@@ -15,20 +15,24 @@ import {
 } from "react-icons/fa";
 import { apiRequest } from "../api.js";
 
-const STATUS_STEPS = ["SUBMITTED", "PICKUP_SCHEDULED", "PICKED_UP", "RECYCLED"];
+const STATUS_STEPS = ["PENDING", "ACCEPTED", "PICKUP_SCHEDULED", "PICKED_UP"];
 const STATUS_LABELS = {
   SUBMITTED: "Submitted",
+  PENDING: "Pending",
+  ACCEPTED: "Accepted",
+  SCHEDULED: "Scheduled",
   PICKUP_SCHEDULED: "Scheduled",
   PICKED_UP: "Picked Up",
-  RECYCLED: "Recycled",
   REJECTED: "Rejected",
   OTHER: "Other"
 };
 const STEP_DETAILS = {
-  SUBMITTED: "Your request has been received and is awaiting review.",
+  SUBMITTED: "Your request has been submitted and is awaiting review.",
+  PENDING: "Your request has been received and is awaiting review.",
+  ACCEPTED: "Your request has been accepted and pickup planning is in progress.",
+  SCHEDULED: "A pickup partner has been assigned to collect your items.",
   PICKUP_SCHEDULED: "A pickup partner has been assigned to collect your items.",
   PICKED_UP: "The items have been collected and are en route to our facility.",
-  RECYCLED: "Processing is complete. Thank you for recycling!",
   REJECTED: "Unfortunately, this request could not be processed.",
   OTHER: "The request status has been updated."
 };
@@ -40,60 +44,88 @@ export default function RequestTracking() {
   const [imageUrl, setImageUrl] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const hasLoadedImageRef = useRef(false);
 
   useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      setError("");
-      try {
-        const token = localStorage.getItem("token");
-        const headers = { Authorization: `Bearer ${token}` };
+    if (!id) return;
 
+    let isActive = true;
+    const token = localStorage.getItem("token");
+    const headers = { Authorization: `Bearer ${token}` };
+
+    const loadSummary = async ({ withLoading = false } = {}) => {
+      if (withLoading) setLoading(true);
+      try {
         const summary = await apiRequest(`/requests/${id}`, { headers });
         if (!summary) throw new Error("Request details not found.");
-        setRequestData(summary);
-
-        try {
-          const imagePayload = await apiRequest(`/requests/${id}/image-data`, { headers });
-          if (imagePayload?.base64Data) {
-            const contentType = imagePayload.contentType || "image/jpeg";
-            setImageUrl(`data:${contentType};base64,${imagePayload.base64Data}`);
-          }
-        } catch (imgErr) {
-          console.warn("Could not load request image:", imgErr);
-          setImageUrl("");
+        if (isActive) {
+          setRequestData(summary);
+          setError("");
         }
       } catch (err) {
-        console.error("Tracking load error:", err);
-        setError(err.message || "Failed to load tracking information.");
+        if (isActive) {
+          setError(err.message || "Failed to load tracking information.");
+        }
       } finally {
-        setLoading(false);
+        if (withLoading && isActive) {
+          setLoading(false);
+        }
       }
     };
-    if (id) load();
+
+    const loadImageOnce = async () => {
+      if (hasLoadedImageRef.current) return;
+      try {
+        const imagePayload = await apiRequest(`/requests/${id}/image-data`, { headers });
+        if (imagePayload?.base64Data && isActive) {
+          const contentType = imagePayload.contentType || "image/jpeg";
+          setImageUrl(`data:${contentType};base64,${imagePayload.base64Data}`);
+        }
+      } catch {
+        if (isActive) setImageUrl("");
+      } finally {
+        hasLoadedImageRef.current = true;
+      }
+    };
+
+    loadSummary({ withLoading: true });
+    loadImageOnce();
+
+    const intervalId = setInterval(() => {
+      loadSummary();
+    }, 15000);
+
+    return () => {
+      isActive = false;
+      clearInterval(intervalId);
+    };
   }, [id]);
 
   const readableStatus = (status) => STATUS_LABELS[status] || STATUS_LABELS.OTHER;
 
   const statusClassName = (status) => {
     switch (status) {
-      case "RECYCLED": return "status-badge status-recycled";
+      case "PENDING":
+      case "SUBMITTED": return "status-badge status-pending";
+      case "ACCEPTED": return "status-badge status-accepted";
       case "REJECTED": return "status-badge status-rejected";
       case "PICKED_UP": return "status-badge status-picked";
-      case "PICKUP_SCHEDULED": return "status-badge status-scheduled";
-      default: return "status-badge status-submitted";
+      case "PICKUP_SCHEDULED":
+      case "SCHEDULED": return "status-badge status-scheduled";
+      default: return "status-badge status-other";
     }
   };
 
   const steps = useMemo(() => {
     if (!requestData?.status) return STATUS_STEPS;
-    if (requestData.status === "REJECTED") return ["SUBMITTED", "PICKUP_SCHEDULED", "PICKED_UP", "REJECTED"];
+    if (requestData.status === "REJECTED") return ["PENDING", "ACCEPTED", "PICKUP_SCHEDULED", "REJECTED"];
     return STATUS_STEPS;
   }, [requestData]);
 
   const getStepState = (stepIndex) => {
     if (!requestData?.status) return "pending";
-    const currentIndex = steps.indexOf(requestData.status);
+    const currentStatus = requestData.status === "SUBMITTED" ? "PENDING" : requestData.status;
+    const currentIndex = steps.indexOf(currentStatus);
     if (currentIndex > stepIndex) return "done";
     if (currentIndex === stepIndex) return "active";
     return "pending";

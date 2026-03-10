@@ -4,17 +4,21 @@ import { apiRequest } from "../api.js";
 
 const STATUS_OPTIONS = [
   "SUBMITTED",
+  "PENDING",
+  "ACCEPTED",
+  "SCHEDULED",
   "PICKUP_SCHEDULED",
   "PICKED_UP",
-  "RECYCLED",
   "REJECTED"
 ];
 
 const STATUS_LABELS = {
   SUBMITTED: "Submitted",
+  PENDING: "Pending",
+  ACCEPTED: "Accepted",
+  SCHEDULED: "Pickup Scheduled",
   PICKUP_SCHEDULED: "Pickup Scheduled",
   PICKED_UP: "Picked Up",
-  RECYCLED: "Recycled",
   REJECTED: "Rejected"
 };
 
@@ -52,7 +56,7 @@ export default function AdminDashboard() {
         const initialDrafts = {};
         normalized.forEach((req) => {
           initialDrafts[req.id] = {
-            status: req.status || "SUBMITTED",
+            status: req.status || "PENDING",
             pickupDate: req.pickupDate || "",
             pickupTime: req.pickupTime || "",
             pickupPersonnelName: req.pickupPersonnelName || ""
@@ -89,6 +93,33 @@ export default function AdminDashboard() {
     });
   }, [requests, query, statusFilter]);
 
+  const metrics = useMemo(() => {
+    const total = requests.length;
+    const pending = requests.filter((r) => r.status === "PENDING" || r.status === "SUBMITTED").length;
+    const scheduled = requests.filter((r) => r.status === "SCHEDULED" || r.status === "PICKUP_SCHEDULED").length;
+    const rejected = requests.filter((r) => r.status === "REJECTED").length;
+    return { total, pending, scheduled, rejected };
+  }, [requests]);
+
+  const statusBadgeClass = (status) => {
+    switch (status) {
+      case "PENDING":
+      case "SUBMITTED":
+        return "status-badge status-pending";
+      case "ACCEPTED":
+        return "status-badge status-accepted";
+      case "SCHEDULED":
+      case "PICKUP_SCHEDULED":
+        return "status-badge status-scheduled";
+      case "PICKED_UP":
+        return "status-badge status-picked";
+      case "REJECTED":
+        return "status-badge status-rejected";
+      default:
+        return "status-badge status-other";
+    }
+  };
+
   const handleDraftChange = (id, field, value) => {
     setDrafts((prev) => ({
       ...prev,
@@ -111,7 +142,7 @@ export default function AdminDashboard() {
       const body = {
         status: draft.status
       };
-      if (draft.status === "PICKUP_SCHEDULED") {
+      if (draft.status === "SCHEDULED") {
         body.pickupDate = draft.pickupDate || null;
         body.pickupTime = draft.pickupTime || null;
         body.pickupPersonnelName = draft.pickupPersonnelName || null;
@@ -160,34 +191,56 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="page-shell" style={{ display: "block", padding: "36px 20px" }}>
-      <div style={{ maxWidth: 1200, margin: "0 auto", display: "grid", gap: 20 }}>
-        <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
+    <div className="page-shell admin-shell">
+      <div className="admin-wrap">
+        <header className="admin-hero">
           <div>
-            <div className="pin-pill" style={{ background: "rgba(14,165,164,0.15)", color: "var(--accent-1)", fontWeight: 700 }}>Admin Module</div>
-            <h1 style={{ margin: "8px 0 0", color: "var(--ink-1)" }}>Request Management & Scheduling</h1>
+            <div className="pin-pill admin-pill">Admin Module</div>
+            <h1 className="admin-title">Request Management & Scheduling</h1>
+            <p className="admin-subtitle">Review incoming requests, update lifecycle status, and assign pickup details.</p>
           </div>
-          <div style={{ display: "flex", gap: 10 }}>
+          <div className="admin-hero-actions">
             <Link to="/dashboard" className="btn pin-btn-ghost">User Dashboard</Link>
           </div>
         </header>
 
-        {error && (
-          <div className="form-error">{error}</div>
-        )}
+        <section className="admin-metrics">
+          <article className="admin-metric-card">
+            <div className="admin-metric-label">Total Requests</div>
+            <div className="admin-metric-value">{metrics.total}</div>
+          </article>
+          <article className="admin-metric-card">
+            <div className="admin-metric-label">Pending Review</div>
+            <div className="admin-metric-value">{metrics.pending}</div>
+          </article>
+          <article className="admin-metric-card">
+            <div className="admin-metric-label">Pickup Scheduled</div>
+            <div className="admin-metric-value">{metrics.scheduled}</div>
+          </article>
+          <article className="admin-metric-card">
+            <div className="admin-metric-label">Rejected</div>
+            <div className="admin-metric-value">{metrics.rejected}</div>
+          </article>
+        </section>
 
-        <section className="content-card" style={{ padding: 16 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 12 }}>
+        {error && <div className="form-error">{error}</div>}
+
+        <section className="admin-filter-card">
+          <div className="admin-filter-head">
+            <div className="admin-filter-title">Filter Requests</div>
+            <div className="admin-filter-summary">{filtered.length} shown</div>
+          </div>
+          <div className="admin-filter-grid">
             <input
+              className="admin-input"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search by request ID, user, device, address"
-              style={{ padding: 12, borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--ink-1)" }}
+              placeholder="Search by ID, user, device, brand, address"
             />
             <select
+              className="admin-input"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              style={{ padding: 12, borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--ink-1)" }}
             >
               <option value="ALL">All statuses</option>
               {STATUS_OPTIONS.map((status) => (
@@ -197,65 +250,73 @@ export default function AdminDashboard() {
           </div>
         </section>
 
-        <section style={{ display: "grid", gap: 12 }}>
+        <section className="admin-request-list">
           {filtered.map((req) => {
             const draft = drafts[req.id] || {};
-            const requiresSchedule = draft.status === "PICKUP_SCHEDULED";
+            const requiresSchedule = draft.status === "SCHEDULED" || draft.status === "PICKUP_SCHEDULED";
             return (
-              <article key={req.id} className="content-card" style={{ padding: 18 }}>
-                <div style={{ display: "grid", gridTemplateColumns: "1.3fr 1fr 1.3fr", gap: 16 }}>
-                  <div>
-                    <h3 style={{ marginTop: 0, marginBottom: 8, color: "var(--ink-1)" }}>#{req.id} {req.deviceType} - {req.brand} {req.model}</h3>
-                    <div style={{ fontSize: 14, color: "var(--ink-2)" }}>
-                      <div><b>User:</b> {req.requesterName || "N/A"}</div>
-                      <div><b>Email:</b> {req.requesterEmail || "N/A"}</div>
-                      <div><b>Qty:</b> {req.quantity} | <b>Condition:</b> {req.condition}</div>
-                      <div><b>Address:</b> {req.pickupAddress}</div>
-                      <div><b>Current:</b> {STATUS_LABELS[req.status] || req.status}</div>
-                    </div>
+              <article key={req.id} className="admin-request-card">
+                <div className="admin-request-head">
+                  <h3 className="admin-request-title">#{req.id} {req.deviceType} - {req.brand} {req.model}</h3>
+                  <span className={statusBadgeClass(req.status)}>{STATUS_LABELS[req.status] || req.status}</span>
+                </div>
+
+                <div className="admin-request-grid">
+                  <div className="admin-request-meta">
+                    <div><b>User:</b> {req.requesterName || "N/A"}</div>
+                    <div><b>Email:</b> {req.requesterEmail || "N/A"}</div>
+                    <div><b>Quantity:</b> {req.quantity || 1}</div>
+                    <div><b>Condition:</b> {req.condition || "N/A"}</div>
+                    <div><b>Address:</b> {req.pickupAddress || "N/A"}</div>
                   </div>
 
-                  <div style={{ display: "grid", gap: 8 }}>
-                    <label style={{ fontSize: 12, color: "var(--ink-2)" }}>New Status</label>
+                  <div className="admin-request-controls">
+                    <label className="admin-label">New Status</label>
                     <select
+                      className="admin-input"
                       value={draft.status || req.status}
                       onChange={(e) => handleDraftChange(req.id, "status", e.target.value)}
-                      style={{ padding: 10, borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--ink-1)" }}
                     >
                       {STATUS_OPTIONS.map((status) => (
                         <option key={status} value={status}>{STATUS_LABELS[status]}</option>
                       ))}
                     </select>
-                  </div>
 
-                  <div style={{ display: "grid", gap: 8 }}>
-                    <label style={{ fontSize: 12, color: "var(--ink-2)" }}>Pickup Date</label>
+                    <div className="admin-schedule-grid">
+                      <div>
+                        <label className="admin-label">Pickup Date</label>
+                        <input
+                          className="admin-input"
+                          type="date"
+                          value={draft.pickupDate || ""}
+                          onChange={(e) => handleDraftChange(req.id, "pickupDate", e.target.value)}
+                          disabled={!requiresSchedule}
+                        />
+                      </div>
+                      <div>
+                        <label className="admin-label">Pickup Time</label>
+                        <input
+                          className="admin-input"
+                          type="time"
+                          value={draft.pickupTime || ""}
+                          onChange={(e) => handleDraftChange(req.id, "pickupTime", e.target.value)}
+                          disabled={!requiresSchedule}
+                        />
+                      </div>
+                    </div>
+
+                    <label className="admin-label">Pickup Personnel</label>
                     <input
-                      type="date"
-                      value={draft.pickupDate || ""}
-                      onChange={(e) => handleDraftChange(req.id, "pickupDate", e.target.value)}
-                      disabled={!requiresSchedule}
-                      style={{ padding: 10, borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--ink-1)" }}
-                    />
-                    <label style={{ fontSize: 12, color: "var(--ink-2)" }}>Pickup Time</label>
-                    <input
-                      type="time"
-                      value={draft.pickupTime || ""}
-                      onChange={(e) => handleDraftChange(req.id, "pickupTime", e.target.value)}
-                      disabled={!requiresSchedule}
-                      style={{ padding: 10, borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--ink-1)" }}
-                    />
-                    <label style={{ fontSize: 12, color: "var(--ink-2)" }}>Pickup Personnel</label>
-                    <input
+                      className="admin-input"
                       type="text"
                       placeholder="Personnel name"
                       value={draft.pickupPersonnelName || ""}
                       onChange={(e) => handleDraftChange(req.id, "pickupPersonnelName", e.target.value)}
                       disabled={!requiresSchedule}
-                      style={{ padding: 10, borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--ink-1)" }}
                     />
+
                     <button
-                      className="btn pin-btn-primary"
+                      className="btn pin-btn-primary admin-save-btn"
                       onClick={() => saveUpdate(req.id)}
                       disabled={savingId === req.id}
                     >
@@ -266,10 +327,9 @@ export default function AdminDashboard() {
               </article>
             );
           })}
+
           {filtered.length === 0 && (
-            <div className="content-card" style={{ textAlign: "center" }}>
-              No requests found.
-            </div>
+            <div className="content-card admin-empty-state">No requests found.</div>
           )}
         </section>
       </div>

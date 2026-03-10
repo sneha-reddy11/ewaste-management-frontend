@@ -112,7 +112,7 @@ public class EwasteRequestService {
         EwasteRequest request = requestRepository.findByIdAndUser(requestId, user)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Request not found"));
 
-        if (request.getStatus() != RequestStatus.PENDING) {
+        if (!request.getStatus().isPendingState()) {
     throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
             "Only pending requests can be updated");
 }
@@ -170,7 +170,7 @@ public class EwasteRequestService {
         EwasteRequest request = requestRepository.findById(requestId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Request not found"));
 
-        if (status == RequestStatus.SCHEDULED) {
+        if (status.isScheduledState()) {
             if (pickupDate == null || pickupTime == null) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "pickupDate and pickupTime are required for scheduling");
             }
@@ -188,11 +188,9 @@ public class EwasteRequestService {
             );
         } else {
             request.setStatus(status);
-            if (status == RequestStatus.REJECTED) {
-                request.setPickupDate(null);
-                request.setPickupTime(null);
-                request.setPickupPersonnelName(null);
-            }
+            request.setPickupDate(null);
+            request.setPickupTime(null);
+            request.setPickupPersonnelName(null);
             emailService.sendStatusUpdateEmail(
                     request.getUser().getEmail(),
                     request.getId(),

@@ -41,7 +41,7 @@ public class AdminRequestController {
 
         RequestStatus status;
         try {
-            status = RequestStatus.valueOf(request.getStatus().trim().toUpperCase());
+            status = RequestStatus.fromInput(request.getStatus());
         } catch (IllegalArgumentException exception) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid status value");
         }

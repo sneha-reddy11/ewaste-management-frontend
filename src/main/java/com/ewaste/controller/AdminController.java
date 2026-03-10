@@ -12,7 +12,7 @@ import java.time.LocalTime;
 import java.util.List;
 
 @RestController
-@RequestMapping("/admin")
+@RequestMapping("/admin/legacy")
 public class AdminController {
 
     @Autowired
@@ -30,7 +30,7 @@ public class AdminController {
             @PathVariable Long id,
             @RequestParam String status) {
 
-        RequestStatus requestStatus = RequestStatus.valueOf(status.toUpperCase());
+        RequestStatus requestStatus = RequestStatus.fromInput(status);
         EwasteRequest updatedRequest = adminService.updateRequestStatus(id, requestStatus);
         return ResponseEntity.ok(updatedRequest);
     }

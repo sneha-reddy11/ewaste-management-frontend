@@ -1,4 +1,5 @@
-export const API_BASE = "http://localhost:8081";
+export const API_BASE =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:8082";
 
 export async function apiRequest(path, options = {}) {
   try {
@@ -23,7 +24,7 @@ export async function apiRequest(path, options = {}) {
   } catch (error) {
     if (error instanceof TypeError) {
       throw new Error(
-        "Unable to reach server. Start backend on http://localhost:8081 and check CORS settings."
+        `Unable to reach server. Start backend on ${API_BASE} and check CORS settings.`
       );
     }
     throw error;
