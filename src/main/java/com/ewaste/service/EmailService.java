@@ -125,13 +125,14 @@ public class EmailService {
     public void sendPickupScheduleEmail(
             String toEmail,
             Long requestId,
+            String deviceLabel,
             LocalDate pickupDate,
             LocalTime pickupTime,
             String personnelName
     ) {
         if (!mailEnabled) {
-            System.out.printf("DEV MAIL pickup schedule -> %s | request=%d | %s %s | personnel=%s%n",
-                    toEmail, requestId, pickupDate, pickupTime, personnelName);
+            System.out.printf("DEV MAIL pickup schedule -> %s | request=%d | device=%s | %s %s | personnel=%s%n",
+                    toEmail, requestId, deviceLabel, pickupDate, pickupTime, personnelName);
             return;
         }
 
@@ -141,17 +142,44 @@ public class EmailService {
             helper.setTo(toEmail);
             helper.setSubject("E-Waste Pickup Scheduled");
 
+            String slotLabel = formatPickupSlot(pickupTime);
+
             String body = """
                 <html>
-                <body style="font-family: Arial, sans-serif;">
-                  <h3>Your e-waste pickup has been scheduled</h3>
-                  <p>Request ID: <b>%d</b></p>
-                  <p>Pickup Date: <b>%s</b></p>
-                  <p>Pickup Time: <b>%s</b></p>
-                  <p>Pickup Personnel: <b>%s</b></p>
+                <body style="margin:0; padding:24px; background:#eef3ef; font-family:Arial,sans-serif; color:#24332f;">
+                  <div style="max-width:560px; margin:0 auto; background:#ffffff; border:1px solid #d9e4dd; border-radius:0; overflow:hidden;">
+                    <div style="background:#2f776f; padding:22px 28px; text-align:center; color:#ffffff; font-size:18px; font-weight:800;">
+                      ♻ E-Waste Loop
+                    </div>
+
+                    <div style="padding:22px 18px 28px 18px;">
+                      <div style="font-size:28px; line-height:1; margin-bottom:12px;">🚚</div>
+                      <div style="font-size:28px; font-weight:800; color:#1f2b28; margin-bottom:8px;">Pickup Scheduled!</div>
+                      <p style="margin:0 0 18px 0; color:#70807b; font-size:14px; line-height:1.5;">
+                        Great news! A pickup has been scheduled for your e-waste request.
+                      </p>
+
+                      <div style="border:1px solid #e3e9e4; border-radius:14px; padding:18px 16px; background:#ffffff;">
+                        <p style="margin:0 0 10px 0; color:#364541; font-size:14px;"><b>Request ID:</b> #%d</p>
+                        <p style="margin:0 0 16px 0; color:#364541; font-size:14px;"><b>Device:</b> %s</p>
+
+                        <div style="background:#edf6ee; border-radius:10px; padding:16px 14px;">
+                          <p style="margin:0 0 10px 0; color:#314540; font-size:14px;"><b>📅 Date:</b> %s</p>
+                          <p style="margin:0 0 10px 0; color:#314540; font-size:14px;"><b>🕘 Time:</b> %s</p>
+                          <p style="margin:0; color:#314540; font-size:14px;"><b>👤 Contact Person:</b> %s</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </body>
                 </html>
-                """.formatted(requestId, pickupDate, pickupTime, personnelName == null ? "TBD" : personnelName);
+                """.formatted(
+                    requestId,
+                    deviceLabel == null || deviceLabel.isBlank() ? "Your e-waste device" : deviceLabel,
+                    pickupDate,
+                    slotLabel,
+                    personnelName == null || personnelName.isBlank() ? "To be assigned" : personnelName
+            );
 
             helper.setText(body, true);
             mailSender.send(message);
@@ -161,8 +189,12 @@ public class EmailService {
     }
 
     public void sendStatusUpdateEmail(String toEmail, Long requestId, String status) {
+        sendStatusUpdateEmail(toEmail, requestId, status, null);
+    }
+
+    public void sendStatusUpdateEmail(String toEmail, Long requestId, String status, String adminDetail) {
         if (!mailEnabled) {
-            System.out.printf("DEV MAIL status update -> %s | request=%d | status=%s%n", toEmail, requestId, status);
+            System.out.printf("DEV MAIL status update -> %s | request=%d | status=%s | detail=%s%n", toEmail, requestId, status, adminDetail);
             return;
         }
 
@@ -229,7 +261,7 @@ public class EmailService {
                     statusAccent(normalizedStatus),
                     statusHeadline(normalizedStatus),
                     nextStepText(normalizedStatus),
-                    statusDetails(normalizedStatus)
+                    statusDetails(normalizedStatus, adminDetail)
             );
 
             helper.setText(body, true);
@@ -261,10 +293,12 @@ public class EmailService {
         };
     }
 
-    private String statusDetails(String status) {
+    private String statusDetails(String status, String adminDetail) {
         return switch (status) {
             case "ACCEPTED" -> "Your request passed initial verification. Our operations team will now assign pickup slot and personnel.";
-            case "REJECTED" -> "This may happen when key pickup details are incomplete or the item category is not currently serviceable in your area.";
+            case "REJECTED" -> adminDetail == null || adminDetail.isBlank()
+                    ? "This may happen when key pickup details are incomplete or the item category is not currently serviceable in your area."
+                    : "Reason provided by admin: " + adminDetail;
             case "SCHEDULED", "PICKUP_SCHEDULED" -> "Please ensure the listed items are accessible, packed safely, and available at the scheduled location and time.";
             case "PICKED_UP" -> "Collected items will be routed through our recycling and recovery workflow with environmentally responsible handling.";
             case "SUBMITTED", "PENDING" -> "Your request is in queue for review. We validate item details, location coverage, and scheduling availability.";
@@ -332,5 +366,19 @@ public class EmailService {
             }
         }
         return out.length() == 0 ? value : out.toString();
+    }
+
+    private String formatPickupSlot(LocalTime pickupTime) {
+        if (pickupTime == null) {
+            return "To be assigned";
+        }
+
+        return switch (pickupTime.toString()) {
+            case "09:00", "09:00:00" -> "Morning (9:00 AM - 12:00 PM)";
+            case "12:00", "12:00:00" -> "Noon (12:00 PM - 03:00 PM)";
+            case "15:00", "15:00:00" -> "Afternoon (3:00 PM - 06:00 PM)";
+            case "18:00", "18:00:00" -> "Evening (6:00 PM - 09:00 PM)";
+            default -> pickupTime.toString();
+        };
     }
 }
